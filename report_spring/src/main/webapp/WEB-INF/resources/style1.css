@@ -1,0 +1,320 @@
+   
+   /* 기본적인 css 설정 */
+   
+   body,form,td,th,pre { 
+      font-size: 9pt; 
+      color: black; 
+      line-height: 160%; 
+      font-family: Nanum Square,tahoma,verdana; 
+        margin: 0px;
+        padding: 0px;
+      
+   }   
+   
+   input { 
+      font-size: 9pt; 
+      color:black; 
+      font-family: Nanum Square,tahoma,verdana; 
+      height: 20px; 
+   } 
+   a:link {text-decoration:none;color:#696969} 
+   a:hover{text-decoration:none;color:#66ccff} 
+   a:visited {text-decoration:none;color:#330066} 
+
+/*--------------------------------------------------------------------------------------------------------*/
+
+   /* 보고서 결재, 수정에 사용할 css */
+   .tbcss1, .tbcss1 td, .tbcss1 th{
+   /* border-collapse: collapse;  */
+   padding: 10;
+   font-size: 9pt;
+   font-family: tahoma,nanumgothic, verdana;  
+   }
+   
+   /* 보고서 찐 테이블 내부 테이블 */
+   .tbcss_in, .tbcss_in td, .tbcss_in th{
+   /* border-collapse: collapse;  */
+   padding: 10;
+   font-size: 9pt;
+   font-family: tahoma,nanumgothic, verdana;  
+   }
+
+
+    /* 보고서 찐 테이블 */
+      .real_table, .real_table th {
+      background-color: #d2deeb;
+      padding: 10;
+      font-size: 9pt;
+      height: 45px;
+      font-family: tahoma,nanumgothic, verdana;
+       border-top-left-radius: 4px;
+         border-bottom-left-radius: 4px;
+      }
+      
+    /* 보고서 찐 테이블 td */ 
+       .real_td {
+         background-color: #f4f6f9;
+         color: black;
+         height: 45px;
+         border-top-right-radius: 4px;
+         border-bottom-right-radius: 4px;
+    }     
+    
+       /* 보고서 찐 테이블 내부 테이블 th */ 
+       .th_color {
+         background-color: #d2deeb;
+         color: black;
+    } 
+    
+    
+      /* 보고서 찐 테이블 내부 테이블 td */ 
+     .td_color {
+       background-color: #e4eaf3;
+       color: black;
+    }  
+    
+    
+/*--------------------------------------------------------------------------------------------------------*/
+        
+   /* 보고서 등록에 사용할 css : th컬러 조절 */ 
+       .th_color1 {
+         background-color: #d2deeb;
+         color: black;
+    }     
+   
+ /*--------------------------------------------------------------------------------------------------------*/
+   
+  
+   /* 회사명, 직원명, 결재순서 테이블 css  */
+   .common, .common td, .common th{
+   border-collapse: collapse; 
+   border: 1px solid #BDBDBD;
+   padding: 3;
+   font-size: 9pt;
+   font-family: tahoma,nanumgothic, verdana;      
+   }
+   
+   /* common 테이블에 th 부분 색상 css */
+  .common_th{
+   color: black;
+   background-color:#ecf3fa;
+    }
+  
+ /*--------------------------------------------------------------------------------------------------------*/
+    
+    /* 로그인 */
+    
+       .login{
+   border-collapse: collapse; 
+   padding: 15px;;
+   border-radius: 4px;
+   font-family: tahoma, nanumgothic, verdana;
+   border : solid 1px rgba(0,0,0,0.3);
+   -webkit-background-clip: padding-box; /* for Safari */
+   background-clip: padding-box; /* for IE9+, Firefox 4+, Opera, Chrome */
+   
+
+
+   }
+ 
+  
+    /*검색화면용 css */    
+   .tbcss3{
+   border-collapse: collapse; 
+   padding: 6;
+   font-size: 9pt;
+   border-radius: 4px;
+   font-family: tahoma, nanumgothic, verdana;
+   border-radius: 4px;
+   
+      
+   }
+
+   /* 검색화면 결과물 부분 css */
+      .tbcss2, .tbcss2 td, .tbcss2 th{ 
+   border-collapse:collapse;  
+   border-top:0px solid gray;
+   border-bottom:0px solid gray; 
+   border-left:0px;
+   border-right:0px;
+   font-size: 9pt;
+   font-family: tahoma,nanumgothic,verdana;   
+   padding: 4px;
+     
+}
+
+   /* 검색화면 제목부분 */
+    .color_list1 {
+         background-color: #3f5384;
+         color: #f7f8f9;
+         border-radius: 4px;
+    }
+    
+       /* 검색화면 밑 제목 부분 */
+    .color_list {
+         background-color: #3f5384;
+         color: #f7f8f9;
+    }
+    
+           /* 검색화면 왼쪽 둥글게 */
+       .color_list_left {
+         background-color: #3f5384;
+         color: #f7f8f9;
+          border-top-left-radius: 4px;
+          border-bottom-left-radius: 4px;
+    }
+    
+         /* 검색화면 오른쪽 둥글게 */
+       .color_list_right {
+         background-color: #3f5384;
+         color: #f7f8f9;
+          border-top-right-radius: 4px;
+          border-bottom-right-radius: 4px;
+    }
+    
+/*           검색결과물 둥글게
+       .radius {
+         border-radius: 4px;
+       }
+     */
+
+    
+    
+    /* 검색화면 th 부분  */
+        
+          .th_1{
+         background-color: #f1f7fc;
+         color: black;
+         border-right:1px solid #d3d3d3; 
+         height:35px;
+          border-top-left-radius: 4px;
+          border-bottom-left-radius: 4px;
+    }
+  
+            .th_2{
+         color: black;
+          border-right:1px solid #d3d3d3; 
+         height:35px;
+         
+    }
+  
+     /* 검색화면 td 부분 */
+       .search_td {
+         background-color: #f1f7fc;
+         color: black;
+         height:35px;
+         border-top-right-radius: 4px;
+          border-bottom-right-radius: 4px;
+
+    } 
+     
+    
+    
+   
+/*--------------------------------------------------------------------------------------------------------*/
+      
+   input[type=checkbox] {  
+       vertical-align: -6px; 
+   }
+   
+
+   input[type=radio] {  
+       vertical-align: -6px; 
+   }
+
+
+
+   
+.hovermenu ul{
+/* font: bold 13px arial; */
+padding-left: 0;
+margin-left: 0;
+height: 30px;
+position: absolute;
+
+}
+
+.hovermenu ul li{
+list-style: none;
+display: inline;
+position: absolute;
+}
+
+.hovermenu ul li a{
+padding: 10px 1.2em;
+text-decoration: none;
+float: center;
+color: black;
+background-color: #d8d9de;
+position: fabsolute;
+
+}
+
+.hovermenu ul li a:hover{
+background-color: #bcbec7;
+position: absolute;
+
+}
+
+/* a{display:inline-block; width:120px; height:30px; vertical-align:middle;} 
+ */
+
+
+  .btn {
+         background-color: #e0e0e0;
+         padding: 2px 4px;
+         margin: 2px;
+         border: none;
+         color: black;
+         text-align: center;
+         text-decoration: none;
+         font-size: 12px;
+         display: inline-block;
+         cursor: pointer;
+         -webkit-transition-duration: 0.1s;
+        /*  transition-duration: 0.1s; */
+             border-radius: 2px;
+          
+      }
+      .btn1:hover {
+         background-color: #bdc7d3;
+         color: black;
+         
+      }
+
+
+    /* 보고서 찐 테이블 */
+      .my_page {
+      background-color: #d2deeb;
+      padding: 10;
+      font-size: 9pt;
+      font-family: tahoma,nanumgothic, verdana;
+       border-top-left-radius: 4px;
+         border-bottom-left-radius: 4px;
+      }
+
+
+
+    /* 마이페이지용 */ 
+       .my_td {
+         background-color: #f4f6f9;
+         color: black;
+         border-top-right-radius: 4px;
+         border-bottom-right-radius: 4px;
+    }     
+
+
+    
+       /* 마이 페이지 th */ 
+       .my_th_color {
+         background-color: #d2deeb;
+         color: black;
+    } 
+    
+    
+      /* 마이 페이지 td */ 
+     .my_td_color {
+       background-color: #e4eaf3;
+       color: black;
+    }  
+    

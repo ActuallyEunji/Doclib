@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!-- mapper 태그선언 -->
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!--    namespace 속성값으로 [DAO 인터페이스명]이 오며 [DAO 인터페이스] 메소드명과 동일한 id 값을 소유한 태그를 내포고 있다.-->
+<!--*******************************************************-->
+<mapper namespace="com.daum.pro.WeekDAO">
+
+   <!--*******************************************************-->
+   <!-- 게시판 총 행의 개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getWeekBoardListCnt" parameterType="com.daum.pro.WeekListDTO" resultType="int">
+          select count(*)
+              from(
+
+                    select
+                       wbr.emp_no "writer"
+                       ,wbr.report_no "report_no"
+                       ,e.emp_name "writer_name"
+                       ,cbt.busi_type_name "week_business_field"
+                       ,wbc.busi_content "week_business_content"
+                       ,to_char(wbc.busi_start_date ,'yyyy-mm-dd')||' ('||to_char(wbc.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_start_date ,'hh24:mi')
+                            ||' ~ '||to_char(wbc.busi_end_date ,'yyyy-mm-dd')||' ('||to_char(wbc.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_end_date ,'hh24:mi')    "week_business_date"
+                       ,to_char(wbr.report_date ,'yyyy-mm-dd')||' ('||to_char(wbr.report_date ,'dy', 'nls_date_language=korean')||')'  "report_date"
+                       ,decode(wbc.fin_state,0,'미완료',1,'완료') "is_week_business_finish"
+                       ,nvl((select instructions from week_business_instruction wbi where wbi.report_no = wbr.report_no ),'-') "week_business_remarks"
+                       ,nvl((select e2.emp_name from week_business_instruction wbi, employee e2 where wbi.report_no = wbr.report_no and e2.emp_no = wbi.orderer),'-') "orderer"
+
+                    from employee e, week_business_content wbc, week_business_bundle wbb,week_business_report wbr, code_business_type cbt
+                    where e.emp_no = wbr.emp_no and wbc.c_no = wbb.c_no and wbr.report_no = wbb.report_no and wbc.busi_type = cbt.busi_type_code
+                    <![CDATA[  and wbr.emp_no in(select e2.emp_no from employee e2 where e2.company_no =#{company_no} and e2.company_emp_no <=#{company_emp_no} )   ]]>
+
+
+                       <if test="min_week_business_year!=null and min_week_business_year!='' and min_week_business_month!=null and min_week_business_month!='' ">
+                        <![CDATA[ and wbc.busi_start_date>=to_date('${min_week_business_year}-${min_week_business_month}','YYYY-MM')  ]]>
+                      </if>
+
+                      <if test="max_week_business_year!=null and max_week_business_year!='' and max_week_business_month!=null and max_week_business_month!='' ">
+                        <![CDATA[  and wbc.busi_start_date<=last_day(to_date('${max_week_business_year}-${max_week_business_month}','YYYY-MM') )  ]]>
+                      </if>
+
+                      <if test="(min_week_business_hour!=null and min_week_business_hour!='' ) and (min_week_business_minute!=null and min_week_business_minute!='')">
+                         <![CDATA[  and to_char(wbc.busi_start_date, 'hh24mi')>= #{min_week_business_hour}||#{min_week_business_minute}  ]]>
+                      </if>
+
+                      <if test="(max_week_business_hour!=null and max_week_business_hour!='')  and ( max_week_business_minute!=null and max_week_business_minute!='' )">
+                         <![CDATA[  and to_char(wbc.busi_start_date, 'hh24mi')<= #{max_week_business_hour}||#{max_week_business_minute}  ]]>
+                      </if>
+
+                      <if test="min_week_business_hour!=null and min_week_business_hour!='' and !(min_week_business_minute!=null and min_week_business_minute!='')">
+                       <![CDATA[  and to_char(wbc.busi_start_date, 'hh24')>= #{min_week_business_hour}  ]]>
+                      </if>
+
+                      <if test="max_week_business_hour!=null and max_week_business_hour!='' and !( max_week_business_minute!=null and max_week_business_minute!='' )">
+                       <![CDATA[  and to_char(wbc.busi_start_date, 'hh24')<= #{max_week_business_hour}  ]]>
+                      </if>
+
+
+                      <if test="week_business_field!=null and week_business_field.size()>0 ">
+                         and wbc.busi_type in
+                             <foreach item="week_business_field" collection="week_business_field" index="index" open="(" separator="," close=")" >
+                                 #{week_business_field}
+                             </foreach>
+                      </if>
+
+                      <if test="is_week_business_finish!=null and is_week_business_finish.size()>0  ">
+                         and wbc.fin_state in
+                               <foreach item="is_week_business_finish" collection="is_week_business_finish" index="index" open="(" separator="," close=")" >
+                                #{is_week_business_finish}
+                             </foreach>
+
+                      </if>
+
+
+                        ) xxx where  1=1
+
+                      <if test=" keyword1!=null and keyword1!='' ">
+                              and (
+                                   (
+                                   upper("writer_name") like upper('%${keyword1}%')
+
+                                   or upper("week_business_field") like upper('%${keyword1}%')
+
+                                   or upper("week_business_content") like upper('%${keyword1}%')
+
+                                   or upper("is_week_business_finish") like upper('%${keyword1}%')
+
+                                   or upper("week_business_remarks") like upper('%${keyword1}%')
+
+                                   or upper("week_business_date") like upper('%${keyword1}%')
+
+                                   or upper("report_date") like upper('%${keyword1}%')
+
+                                   or upper("is_week_business_finish") like upper('%${keyword1}%')
+
+                                   or upper("week_business_remarks") like upper('%${keyword1}%')
+
+                                   or upper("orderer") like upper('%${keyword1}%')
+                                   
+                                   )
+
+                                 <if test="keyword2!=null and keyword2!='' ">
+                                     <if test="or_and != 3 ">
+                                      <if test="or_and == 1">
+                                         or
+                                      </if>
+                                      <if test="or_and == 2">
+                                         and
+                                      </if>
+
+                                   (
+                                   upper("writer_name") like upper('%${keyword2}%')
+
+                                   or upper("week_business_field") like upper('%${keyword2}%')
+
+                                   or upper("week_business_content") like upper('%${keyword2}%')
+
+                                   or upper("is_week_business_finish") like upper('%${keyword2}%')
+
+                                   or upper("week_business_remarks") like upper('%${keyword2}%')
+
+                                   or upper("week_business_date") like upper('%${keyword2}%')
+
+                                   or upper("report_date") like upper('%${keyword2}%')
+
+                                   or upper("is_week_business_finish") like upper('%${keyword2}%')
+
+                                   or upper("week_business_remarks") like upper('%${keyword2}%')
+
+                                   or upper("orderer") like upper('%${keyword2}%')
+                                   
+                                   )
+
+                           </if>
+                         </if>)
+                         </if>
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getWeekBoardList" parameterType="com.daum.pro.WeekListDTO" resultType="java.util.HashMap">   
+          select * from (
+    select xxx.*  ,  ROW_NUMBER() OVER(ORDER BY
+                    <if test="sort!=null and sort!='' "   >
+                        ${sort}
+                    </if>
+                    <if test="sort==null or sort=='' "   >
+                       "report_date" desc
+                    </if>
+                     )  "r_num"
+    from (
+     select
+                       wbr.emp_no "writer"
+                       ,wbr.report_no "report_no"
+                       ,e.emp_name "writer_name"
+                       ,cbt.busi_type_name "week_business_field"
+                       ,wbc.busi_content "week_business_content"
+                  ,to_char(wbc.busi_start_date,'YYYY-MM-DD')||'('||to_char(wbc.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_start_date ,'AM HH:MI')
+                            ||' ~ '||to_char(wbc.busi_end_date,'YYYY-MM-DD')||'('||to_char(wbc.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_end_date ,'AM HH:MI')   "week_business_date"                                                                                             
+                       ,to_char(wbr.report_date ,'YYYY-MM-DD')||'('||to_char(wbr.report_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbr.report_date ,'AM HH:MI') "report_date"
+                       ,decode(wbc.fin_state,0,'미완료',1,'완료') "is_week_business_finish"
+                       ,nvl((select instructions from week_business_instruction wbi where wbi.report_no = wbr.report_no ),'-') "week_business_remarks"
+                       ,nvl((select e2.emp_name from week_business_instruction wbi, employee e2 where wbi.report_no = wbr.report_no and e2.emp_no = wbi.orderer),'-') "orderer"
+
+                    from employee e, week_business_content wbc, week_business_bundle wbb,week_business_report wbr, code_business_type cbt
+                    where e.emp_no = wbr.emp_no and wbc.c_no = wbb.c_no and wbr.report_no = wbb.report_no and wbc.busi_type = cbt.busi_type_code
+                     <![CDATA[  and wbr.emp_no in(select e2.emp_no from employee e2 where e2.company_no =#{company_no} and e2.company_emp_no <=#{company_emp_no} )   ]]>
+
+
+                       <if test="min_week_business_year!=null and min_week_business_year!='' and min_week_business_month!=null and min_week_business_month!='' ">
+                        <![CDATA[ and wbc.busi_start_date>=to_date('${min_week_business_year}-${min_week_business_month}','YYYY-MM')  ]]>
+                      </if>
+
+                      <if test="max_week_business_year!=null and max_week_business_year!='' and max_week_business_month!=null and max_week_business_month!='' ">
+                        <![CDATA[  and wbc.busi_start_date<=last_day(to_date('${max_week_business_year}-${max_week_business_month}','YYYY-MM') )  ]]>
+                      </if>
+
+                      <if test="(min_week_business_hour!=null and min_week_business_hour!='' ) and (min_week_business_minute!=null and min_week_business_minute!='')">
+                         <![CDATA[  and to_char(wbc.busi_start_date, 'hh24mi')>= #{min_week_business_hour}||#{min_week_business_minute}  ]]>
+                      </if>
+
+                      <if test="(max_week_business_hour!=null and max_week_business_hour!='')  and ( max_week_business_minute!=null and max_week_business_minute!='' )">
+                         <![CDATA[  and to_char(wbc.busi_start_date, 'hh24mi')<= #{max_week_business_hour}||#{max_week_business_minute}  ]]>
+                      </if>
+
+                      <if test="min_week_business_hour!=null and min_week_business_hour!='' and !(min_week_business_minute!=null and min_week_business_minute!='')">
+                       <![CDATA[  and to_char(wbc.busi_start_date, 'hh24')>= #{min_week_business_hour}  ]]>
+                      </if>
+
+                      <if test="max_week_business_hour!=null and max_week_business_hour!='' and !( max_week_business_minute!=null and max_week_business_minute!='' )">
+                       <![CDATA[  and to_char(wbc.busi_start_date, 'hh24')<= #{max_week_business_hour}  ]]>
+                      </if>
+
+
+                      <if test="week_business_field!=null and week_business_field.size()>0 ">
+                         and wbc.busi_type in
+                             <foreach item="week_business_field" collection="week_business_field" index="index" open="(" separator="," close=")" >
+                                 #{week_business_field}
+                             </foreach>
+                      </if>
+
+                      <if test="is_week_business_finish!=null and is_week_business_finish.size()>0  ">
+                         and wbc.fin_state in
+                               <foreach item="is_week_business_finish" collection="is_week_business_finish" index="index" open="(" separator="," close=")" >
+                                #{is_week_business_finish}
+                             </foreach>
+
+                      </if>
+
+             
+        ) xxx   where  1=1
+            
+          <if test=" keyword1!=null and keyword1!='' ">
+                          and (
+                               (
+                               upper("writer_name") like upper('%${keyword1}%')
+
+                               or upper("week_business_field") like upper('%${keyword1}%')
+
+                               or upper("week_business_content") like upper('%${keyword1}%')
+
+                               or upper("is_week_business_finish") like upper('%${keyword1}%')
+
+                               or upper("week_business_remarks") like upper('%${keyword1}%')
+
+                               or upper("week_business_date") like upper('%${keyword1}%')
+
+                               or upper("report_date") like upper('%${keyword1}%')
+
+                               or upper("is_week_business_finish") like upper('${keyword1}')
+
+                               or upper("week_business_remarks") like upper('%${keyword1}%')
+
+                               or upper("orderer") like upper('%${keyword1}%')
+                                   
+                               )
+
+                             <if test="keyword2!=null and keyword2!='' ">
+                                 <if test="or_and != 3 ">
+                                  <if test="or_and == 1">
+                                     or
+                                  </if>
+                                  <if test="or_and == 2">
+                                     and
+                                  </if>
+
+                               (
+                               upper("writer_name") like upper('%${keyword2}%')
+
+                               or upper("week_business_field") like upper('%${keyword2}%')
+
+                               or upper("week_business_content") like upper('%${keyword2}%')
+
+                               or upper("is_week_business_finish") like upper('%${keyword2}%')
+
+                               or upper("week_business_remarks") like upper('%${keyword2}%')
+
+                               or upper("week_business_date") like upper('%${keyword2}%')
+
+                               or upper("report_date") like upper('%${keyword2}%')
+
+                               or upper("is_week_business_finish") like upper('${keyword2}')
+
+                               or upper("week_business_remarks") like upper('%${keyword2}%')
+
+                               or upper("orderer") like upper('%${keyword2}%')
+                                   
+                                   
+                               )
+
+                       </if>
+                     </if>)
+                     </if>
+          
+         <![CDATA[  ) zzz where "r_num">=${beginRowNo} and "r_num"<=${endRowNo} ]]>
+         
+   </select> 
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 주간 업무 보고서 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertWeek"  parameterType="com.daum.pro.WeekDTO" >
+         insert into week_business_report(
+              report_no
+              ,report_code
+              ,report_date
+              ,emp_no
+         )
+         values(
+                   (select nvl(max(report_no),0)+1 from week_business_report)
+                   ,4
+                   ,to_date(#{journal_year}||#{journal_month}||#{journal_date}, 'yyyymmdd')
+                   ,#{emp_no}
+         )
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 업무일지 내용 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertWeekContent"  parameterType="com.daum.pro.WeekDTO" >
+          insert into week_business_content(
+              c_no
+              ,busi_type
+              ,busi_start_date
+              ,busi_end_date
+              ,busi_content
+              ,fin_state
+         )
+         <foreach item="list" collection="weekList"  index="idx" open="" separator="union" close="">
+            select
+                   (select nvl(max(c_no),0) + #{idx} +1 from week_business_content)
+                      ,#{list.week_list}
+                      ,to_date(#{list.begin_journal_year}||#{list.begin_journal_month}||#{list.begin_journal_date}||#{list.begin_journal_hour}||#{list.begin_journal_minute}, 'yyyymmddhh24mi')
+                      ,to_date(#{list.end_journal_year}||#{list.end_journal_month}||#{list.end_journal_date}||#{list.end_journal_hour}||#{list.end_journal_minute}, 'yyyymmddhh24mi')
+                      ,#{list.week_content}
+                     <if test=" list.completion!=null and list.completion!='' ">
+                         ,1
+                     </if>
+                     <if test=" list.completion==null or list.completion=='' ">
+                         ,0
+                     </if>
+            from dual
+         </foreach>
+         
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertTable"  parameterType="com.daum.pro.WeekDTO">
+         insert into week_business_bundle(
+               w_b_no
+              ,report_no
+              ,c_no
+         )
+         <foreach item="list" collection="weekList"  index="idx" open="" separator="union" close="">
+            select
+                   (select nvl(max(w_b_no),0)+ #{idx}+1 from week_business_bundle)
+                   ,(select nvl(max(report_no),1) from week_business_report)
+                   ,(select c_no from week_business_content wbc where wbc.busi_type = #{list.week_list} and wbc.busi_content = #{list.week_content})
+            from dual
+         </foreach>
+   </insert>   
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertTable2"  parameterType="com.daum.pro.WeekDTO">
+         insert into week_business_bundle(
+               w_b_no
+              ,report_no
+              ,c_no
+         )
+         <foreach item="list" collection="weekList"  index="idx" open="" separator="union" close="">
+            select
+                   (select nvl(max(w_b_no),0)+ #{idx}+1 from week_business_bundle)
+                   ,#{report_no}
+                   ,(select c_no from week_business_content wbc where wbc.busi_type = #{list.week_list} and wbc.busi_content = #{list.week_content} 
+                         and to_char(wbc.busi_start_date,'yyyymmddhh24mi') = #{list.begin_journal_year}||#{list.begin_journal_month}||#{list.begin_journal_date}||#{list.begin_journal_hour}||#{list.begin_journal_minute})
+            from dual
+         </foreach>
+   </insert>
+   
+   
+    <!--*******************************************************-->
+    <!-- 주간 업무 보고서 검색하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+     <select id="getupDelweek" parameterType="com.daum.pro.WeekDTO" resultType="java.util.HashMap">
+           select
+              to_char(wbr.report_date ,'yyyy')                                     "journal_year"
+              ,to_char(wbr.report_date ,'mm')                                      "journal_month"
+              ,to_char(wbr.report_date ,'dd')                                      "journal_date"
+              ,to_char(wbr.report_date ,'dy', 'nls_date_language=korean')          "to_today_day"
+
+              ,(select wbi.instructions from week_business_instruction wbi
+                        where wbr.report_no = wbi.report_no)                "week_business_remarks"
+       
+              ,nvl((select e2.emp_name||'('||cj.jikup_name||')' from code_jikup cj, employee e2, week_business_instruction wbi
+                      where e2.emp_no = wbi.orderer and cj.jikup_code = e2.jikup and wbr.report_no = wbi.report_no),'　')  "orderer"
+              ,revise_cnt "revise_cnt"
+          from  week_business_report wbr
+          where wbr.report_no = #{report_no}
+   </select> 
+
+
+    <!--*******************************************************-->
+    <!-- 주간 업무일지 내용 검색하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+     <select id="getupDelWeekContent" parameterType="com.daum.pro.WeekDTO" resultType="java.util.HashMap">
+           select
+         
+           wbc.c_no "c_no"
+              ,e.emp_name "writer_name"
+              ,wbc.busi_type "week_business_field"
+              ,wbc.busi_content "week_business_content"
+              ,to_char(wbc.busi_start_date ,'yyyy')                              "begin_journal_year"
+              ,to_char(wbc.busi_start_date ,'mm')                                "begin_journal_month"
+              ,to_char(wbc.busi_start_date ,'dd')                                "begin_journal_date"
+              ,to_char(wbc.busi_start_date ,'hh24')                              "begin_journal_hour"
+              ,to_char(wbc.busi_start_date ,'mi')                                "begin_journal_minute"
+              ,to_char(wbc.busi_start_date ,'dy', 'nls_date_language=korean')    "begin_journal_day"
+
+              ,to_char(wbc.busi_end_date ,'yyyy')                              "end_journal_year"
+              ,to_char(wbc.busi_end_date ,'mm')                                  "end_journal_month"
+              ,to_char(wbc.busi_end_date ,'dd')                                  "end_journal_date"
+              ,to_char(wbc.busi_end_date ,'hh24')                                "end_journal_hour"
+              ,to_char(wbc.busi_end_date ,'mi')                                  "end_journal_minute"
+              ,to_char(wbc.busi_end_date ,'dy', 'nls_date_language=korean')      "end_journal_day"
+
+              ,wbc.fin_state "completion"
+
+
+         from employee e, week_business_content wbc, week_business_report wbr, week_business_bundle wbb
+         where e.emp_no = wbr.emp_no and   wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.report_no = #{report_no} 
+           
+   </select>
+   
+   <!--*******************************************************-->
+   <!-- 내가 보고서 쓴 사람일때 보고서 수정하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->   
+   <update id="updateReport"  parameterType="com.daum.pro.WeekDTO" >   
+      update week_business_report
+            set
+                report_date  = to_date(#{journal_year}||#{journal_month}||#{journal_date}, 'yyyymmdd')
+                ,revise_cnt = (select revise_cnt+1 from week_business_report where report_no = #{report_no})
+            where report_no = #{report_no} and emp_no = #{emp_no}
+   </update>  
+   
+   
+   <!--*******************************************************-->
+    <!-- 수정사항 있는지 확인하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+    <select id="checkupdate" parameterType="com.daum.pro.WeekDTO" resultType="int">
+           select
+              revise_cnt "revise_cnt"
+          from  week_business_report wbr
+          where wbr.report_no = #{report_no}
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!--상사가 수정할때 보고서 수정상태 +1하는 update문을 내포한 update태그 선언 (추가됨)-->
+   <!--*******************************************************-->   
+   <update id="updateCheck"  parameterType="com.daum.pro.WeekDTO" >   
+      update week_business_report
+            set
+                revise_cnt = (select revise_cnt+1 from week_business_report where report_no = #{report_no})
+            where report_no = #{report_no} 
+   </update>   
+   
+
+   <!--*******************************************************-->
+   <!-- 상사가 보고서 수정하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->   
+   <update id="updateReport2"  parameterType="com.daum.pro.WeekDTO" >   
+         merge into week_business_instruction
+            using dual
+            on (report_no = #{report_no})
+            when matched then
+                update set instructions= nvl(#{week_business_remarks},'　') , orderer=#{emp_no}
+            when not matched then
+                insert (instruction_no
+                         ,report_no
+                         ,instructions
+                         ,orderer
+                )
+                values ( (select nvl(max(instruction_no),0)+1 from week_business_instruction)
+                            ,#{report_no}
+                            ,nvl(#{week_business_remarks},'　')
+                            ,#{emp_no}
+                )
+   </update>
+   
+
+   <!--*******************************************************-->
+   <!-- 완료여부 업데이트하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->
+   <update id="updatefinish"  parameterType="java.util.HashMap" >
+         update week_business_content set 
+                    fin_state = ${completion}
+             where c_no = ${c_no}
+   </update>
+
+
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deleteTable"  parameterType="com.daum.pro.WeekDTO" >
+         delete from week_business_bundle where report_no = #{report_no}
+   </delete>   
+   
+   
+   <!--*******************************************************-->
+   <!-- 주간 업무일지 내용 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deleteReportContent"  parameterType="com.daum.pro.WeekDTO" >
+          delete from week_business_content 
+              where c_no not in (select wbc.c_no from week_business_content wbc, week_business_bundle wbb, week_business_report wbr 
+                                   where wbc.c_no = wbb.c_no and wbr.report_no = wbb.report_no)
+   </delete>   
+   
+   
+   <!--*******************************************************-->
+   <!-- 주간 업무 보고서 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletereport"  parameterType="com.daum.pro.WeekDTO" >
+          delete from daily_business_report where report_no = #{report_no}
+   </delete>         
+   
+      
+   <!--*******************************************************-->
+   <!-- 지시사항 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deleteInstruction"  parameterType="com.daum.pro.WeekDTO" >
+          delete from week_business_instruction where report_no = #{report_no}
+   </delete>   
+   
+
+</mapper>
+
+
+

@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.daum.pro.BoardDAO">
+
+
+   <select id="getBoardListCnt" parameterType="com.daum.pro.BoardSearchDTO" resultType="int">
+
+      select
+          count(*)
+      from board , employee
+      where group_no = b_no and board.writer = employee.emp_no and company_no = (select company_no from employee where emp_no = #{emp_no})
+      <if test="keyword!=null and keyword!=''">
+         <if test="keywordTarget=='subject'">
+            and group_no=any(
+               select group_no from board where upper(subject) like upper('%${keyword}%')
+            )
+         </if>
+         <if test="keywordTarget=='content'">
+            and group_no=any(
+               select group_no from board where upper(content) like upper('%${keyword}%')
+            )
+         </if>
+         <if test="keywordTarget=='writer'">
+            and group_no=any(
+               select group_no from board where upper(emp_name) like upper('%${keyword}%')
+            )
+         </if>
+      </if>
+
+   </select>
+
+   <select id="getBoardList" parameterType="com.daum.pro.BoardSearchDTO" resultType="java.util.HashMap">
+
+
+      select rrr.*
+      from (select zzz.* , rownum||'' RNUM  from(
+
+      select
+          b_no||''                     as "board_no",
+          subject  					as "subject",
+          '　['||(select count(*) from board b2 where b2.b_no != board.b_no  and b2.group_no = board.b_no)||']' as "cnt",
+          emp_name                      as "writer",
+          to_char(reg_date,'YYYY-MM-DD AM HH:MI')      as "reg_date",
+          readcount||''                  as "readcount",
+          content                     as "content",
+          group_no||''                   as "group_no",
+          print_no||''                   as "print_no",
+          print_level||''                as "print_level"
+      from board , employee
+
+      where board.writer = employee.emp_no and group_no = b_no and company_no = (select company_no from employee where emp_no = #{emp_no})
+
+      <if test="keyword!=null and keyword!=''">
+         <if test="keywordTarget=='subject'">
+
+            and group_no=any(
+               select group_no from board where upper(subject) like upper('%${keyword}%')
+            )
+         </if>
+         <if test="keywordTarget=='content'">
+            and group_no=any(
+               select group_no from board where upper(content) like upper('%${keyword}%')
+            )
+         </if>
+         <if test="keywordTarget=='writer'">
+            and group_no=any(
+               select group_no from board where upper(emp_name) like upper('%${keyword}%')
+            )
+         </if>
+      </if>
+
+      order by group_no desc, print_no asc
+      <![CDATA[
+      ) zzz where rownum<=${endRowNo} ) rrr where "RNUM">=${beginRowNo}
+      ]]>
+   </select>
+
+
+   <insert id="insertBoard" parameterType="com.daum.pro.BoardDTO" >
+
+      insert into board(
+         b_no,
+         subject,
+         writer,
+         readcount,
+         content,
+         group_no,
+         print_no,
+         print_level
+      ) values(
+         (select nvl(max(b_no),0)+1 from board),
+         nvl(#{subject},'reply'),
+         #{emp_no},
+         0,
+         #{content}
+
+         <if test="board_no==null or board_no==''">
+            ,(select nvl(max(b_no),0)+1 from board)
+            ,0
+            ,0
+         </if>
+
+         <if test="board_no!=null and board_no!=''">
+            ,(select group_no from board where b_no=${board_no})
+            ,(select print_no+1 from board where b_no=${board_no})
+            ,(select print_level+1 from board where b_no=${board_no})
+         </if>
+      )
+   </insert>
+
+
+
+
+
+
+
+
+
+   <update id="updatePrint_no" parameterType="com.daum.pro.BoardDTO" >
+
+   <![CDATA[
+      update board set print_no = print_no+1
+      where group_no = (select group_no from board where b_no=${board_no})
+                     and print_no>(select print_no from board where b_no=${board_no})
+   ]]>
+
+   </update>
+
+
+
+
+
+
+
+
+   <update id = "updateReadcount" parameterType="int">
+
+      update board
+      set readcount = readcount+1
+      where b_no = #{board_no}
+
+   </update>
+
+
+
+
+
+
+   <select id="getBoardDTO" parameterType="int" resultType="com.daum.pro.BoardDTO">
+      select
+          b_no||''                     as "board_no",
+          subject                     as "subject",
+          emp_name              as "writer",
+          board.writer    "writer_no",
+          to_char(reg_date,'YYYY-MM-DD AM HH:MI')      as "reg_date",
+          readcount||''                  as "readcount",
+          content                     as "content",
+          group_no||''                   as "group_no",
+          print_no||''                   as "print_no",
+          print_level||''                as "print_level"
+      from board, employee
+      where board.writer = employee.emp_no and b_no=#{board_no}
+   </select>
+   
+   <!-- 댓글 select -->
+   <select id="getBoardDTO2" parameterType="int" resultType="java.util.HashMap">
+      select
+          b_no||''                     as "board_no",
+          emp_no					as "writer",
+          emp_name              as "writer_name",
+          board.writer    "writer_no",
+          to_char(reg_date,'YYYY-MM-DD AM HH:MI')      as "reg_date",
+          content                     as "content",
+          group_no||''                   as "group_no",
+          print_no||''                   as "print_no",
+          print_level||''                as "print_level"
+      from board, employee
+      where board.writer = employee.emp_no and group_no=#{board_no} and b_no !=#{board_no} 
+      order by group_no , print_no asc
+   </select>
+   
+
+
+   <update id="updateBoard" parameterType="com.daum.pro.BoardDTO">
+
+      update
+         board
+      set
+         subject=nvl(#{subject},'reply')
+         , content=#{content}
+      where
+         b_no=${board_no}
+         and writer=#{emp_no}
+         and (
+            select count(*) from board
+            where group_no=(select group_no from board where b_no=${board_no})
+               and print_no=(select print_no+1 from board where b_no=${board_no})
+               and print_level=(select print_level+1 from board where b_no=${board_no})
+         )=0
+
+   </update>
+
+
+   <delete id="deleteBoard" parameterType="com.daum.pro.BoardDTO">
+      delete from board
+      where
+         b_no=${board_no}
+         and writer=#{emp_no}
+         and (select count(*) from board where group_no=#{group_no})&lt;=1
+   </delete>
+   
+   
+    <delete id="deleteBoard2" parameterType="com.daum.pro.BoardDTO">
+      delete from board
+      where
+         b_no=${board_no}
+         and writer=#{emp_no}
+         and (select print_level from board where b_no=${board_no} and group_no=#{group_no})
+         		=(select print_level from board where group_no=#{group_no} and b_no=(select max(b_no) from board where group_no=#{group_no}))
+   </delete>
+   
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

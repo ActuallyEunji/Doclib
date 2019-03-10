@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!-- mapper 태그선언 -->
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!--    namespace 속성값으로 [DAO 인터페이스명]이 오며 [DAO 인터페이스] 메소드명과 동일한 id 값을 소유한 태그를 내포고 있다.-->
+<!--*******************************************************-->
+<mapper namespace="com.daum.pro.MypageDAO">
+
+
+   <!--*******************************************************-->
+   <!-- 미결재한 보고서 목록개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getNoApprovalListCnt" parameterType="com.daum.pro.MypageListDTO" resultType="int">
+          select count(*)
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from  expense_report er, sign_finish_report sfr
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no and sfr.emp_no = #{emp_no} and sfr.sign_code =2
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and (select  sfr2.sign_code from sign_finish_report sfr2 where sfr2.report_code = sfr.report_code and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no
+                                 and sfr2.emp_no = (select e2.emp_no from employee e2 where e2.emp_no = #{emp_no})-1)=1
+         
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from sales_report sr, sign_finish_report sfr
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no and sfr.emp_no = #{emp_no} and sfr.sign_code =2
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and (select  sfr2.sign_code from sign_finish_report sfr2 where sfr2.report_code = sfr.report_code and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no
+                                 and sfr2.emp_no = (select e2.emp_no from employee e2 where e2.emp_no = #{emp_no})-1)=1
+         )
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 반려된 보고서 목록개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getRefuseListCnt" parameterType="com.daum.pro.MypageListDTO" resultType="int">
+          select count(*)
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from  expense_report er, sign_finish_report sfr
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and er.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no  and sfr3.sign_code in (3) ) >=1
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from sales_report sr, sign_finish_report sfr
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and sr.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and sfr3.sign_code in (3) ) >=1
+         )
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 결재종료된 보고서 목록개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getFinishListCnt" parameterType="com.daum.pro.MypageListDTO" resultType="int">
+         select count(*)
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from  expense_report er, sign_finish_report sfr
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and er.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and  sfr3.sign_code in(2,3)) =0
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no", sfr.sign_date "sign_date" , sfr.return_no "max_return_no"
+                 from sales_report sr, sign_finish_report sfr
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and sr.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and  sfr3.sign_code in(2,3)) =0
+         )
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 미완료된 업무보고서 목록개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getUnFinishListCnt" parameterType="com.daum.pro.MypageListDTO" resultType="int">
+   			select count(*) 
+			from
+		  (
+		  select  
+		          dbr.report_no "report_no"
+		          ,dbr.emp_no "writer"
+		          ,'일일 업무보고서' "report" 
+		          , cbt.busi_type_name "busi_type" 
+		          , dbr.busi_content "content"
+		          , to_char(dbr.busi_start_date ,'yyyy-mm-dd')||'('||to_char(dbr.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_start_date ,'am hh:mi')||' ~ '|| 
+		              to_char(dbr.busi_end_date ,'yyyy-mm-dd')||'('||to_char(dbr.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_end_date ,'am hh:mi') "busi_date"
+		  from daily_business_report dbr, code_business_type cbt
+		  where dbr.busi_type = cbt.busi_type_code and dbr.fin_state = 0 and dbr.emp_no = #{emp_no}
+		  
+		  union all
+		  
+		  select 
+		        (select distinct wbb.report_no from week_business_bundle wbb where wbb.c_no = wbc.c_no) "report_no"
+		        ,(select wbr.emp_no from week_business_report wbr where wbr.report_no = (select distinct wbb.report_no from week_business_bundle wbb where wbb.c_no = wbc.c_no )) "writer"
+		        ,'주간 업무보고서' "report" 
+		        , cbt.busi_type_name "busi_type" 
+		        , wbc.busi_content "content"
+		        , to_char(wbc.busi_start_date ,'yyyy-mm-dd')||'('||to_char(wbc.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_start_date ,'am hh:mi')||' ~ '|| 
+		            to_char(wbc.busi_end_date ,'yyyy-mm-dd')||'('||to_char(wbc.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_end_date ,'am hh:mi') "busi_date"
+		    from week_business_content wbc, code_business_type cbt,week_business_bundle wbb, week_business_report wbr
+		    where wbc.busi_type = cbt.busi_type_code and wbc.fin_state = 0 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no} 
+		    )  
+   </select>
+   
+   <!--*******************************************************-->
+   <!-- 미결재한 보고서 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getNotApprovalList" parameterType="com.daum.pro.MypageListDTO" resultType="java.util.HashMap">   
+           select "report_name", "writer", "report_no", "max_return_no", "sign_date" ,"report" , "sign_name"
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no", to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||')																	'||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no" , '지출보고서' "report", cs.sign_name "sign_name"
+                 from  expense_report er, sign_finish_report sfr, code_sign cs
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no and sfr.emp_no = #{emp_no} and sfr.sign_code =2  and cs.sign_code = sfr.sign_code
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and (select  sfr2.sign_code from sign_finish_report sfr2 where sfr2.report_code = sfr.report_code and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no
+                                 and sfr2.emp_no = (select e2.emp_no from employee e2 where e2.emp_no = #{emp_no})-1)=1
+         
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no", to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||')															'||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no" , '영업보고서' "report", cs.sign_name "sign_name"
+                 from sales_report sr, sign_finish_report sfr, code_sign cs
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no and sfr.emp_no = #{emp_no} and sfr.sign_code =2 and cs.sign_code = sfr.sign_code
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and (select  sfr2.sign_code from sign_finish_report sfr2 where sfr2.report_code = sfr.report_code and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no
+                                 and sfr2.emp_no = (select e2.emp_no from employee e2 where e2.emp_no = #{emp_no})-1)=1
+         
+         ) order by 5  desc
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 반려된 보고서 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getRefuseList" parameterType="com.daum.pro.MypageListDTO" resultType="java.util.HashMap">   
+         select "report_name", "writer", "report_no", "max_return_no", "sign_date" ,"report" , '반려' "sign_name"
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no",  to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||')																							'||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no", '지출보고서' "report"
+                 from  expense_report er, sign_finish_report sfr
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no 
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and er.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no  and sfr3.sign_code in (3) ) >=1
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no",  to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy','nls_date_language=korean')||')																					'||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no", '영업보고서' "report"
+                 from sales_report sr, sign_finish_report sfr, code_sign cs
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no  and cs.sign_code = sfr.sign_code
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and sr.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and sfr3.sign_code in (3) ) >=1
+         ) order by 5
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 결재종료된 보고서 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getFinishList" parameterType="com.daum.pro.MypageListDTO" resultType="java.util.HashMap">   
+           select "report_name", "writer", "report_no", "max_return_no", "sign_date" ,"report" , "sign_name"
+         from ( select er.report_name "report_name", er.emp_no "writer", er.report_no "report_no", to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||') '||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no", '지출보고서' "report", cs.sign_name "sign_name"
+                 from  expense_report er, sign_finish_report sfr, code_sign cs
+                 where  sfr.report_code = er.report_code and sfr.report_no = er.report_no  and cs.sign_code = sfr.sign_code
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and er.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and  sfr3.sign_code in(2,3)) =0
+                 union all
+         
+                 select sr.report_name "report_name", sr.emp_no "writer", sr.report_no "report_no",to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||') '||to_char(sfr.sign_date ,'AM HH:MI') "sign_date" , sfr.return_no "max_return_no", '영업보고서' "report", cs.sign_name "sign_name"
+                 from sales_report sr, sign_finish_report sfr, code_sign cs
+                 where  sfr.report_code = sr.report_code and sfr.report_no = sr.report_no   and cs.sign_code = sfr.sign_code
+                         and sfr.return_no = (select max(sfr3.return_no) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no)
+                         and sr.emp_no = #{emp_no} and sfr.emp_no = #{emp_no}
+                         and (select count(*) from sign_finish_report sfr3 where sfr3.report_code = sfr.report_code and sfr3.report_no = sfr.report_no and sfr3.return_no = sfr.return_no and  sfr3.sign_code in(2,3)) =0
+         ) order by 5
+   </select>
+
+
+
+   <!--*******************************************************-->
+   <!-- 미완료된 업무 보고서 목록검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getUnFinishList" parameterType="com.daum.pro.MypageListDTO" resultType="java.util.HashMap">   
+			select "report_no" , "writer", "report" , "busi_type", "content" , "busi_date"
+			from
+		  (
+		  select  
+		          dbr.report_no "report_no"
+		          ,dbr.emp_no "writer"
+		          ,'일일 업무보고서' "report" 
+		          , cbt.busi_type_name "busi_type" 
+		          , dbr.busi_content "content"
+		          , to_char(dbr.busi_start_date ,'yyyy-mm-dd')||'('||to_char(dbr.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_start_date ,'am hh:mi')||' ~ '|| 
+		              to_char(dbr.busi_end_date ,'yyyy-mm-dd')||'('||to_char(dbr.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_end_date ,'am hh:mi') "busi_date"
+		  from daily_business_report dbr, code_business_type cbt
+		  where dbr.busi_type = cbt.busi_type_code and dbr.fin_state = 0 and dbr.emp_no = #{emp_no}
+		  
+		  union all
+		  
+		  select 
+		        (select distinct wbb.report_no from week_business_bundle wbb where wbb.c_no = wbc.c_no) "report_no"
+		        ,(select wbr.emp_no from week_business_report wbr where wbr.report_no = (select distinct wbb.report_no from week_business_bundle wbb where wbb.c_no = wbc.c_no )) "writer"
+		        ,'주간 업무보고서' "report" 
+		        , cbt.busi_type_name "busi_type" 
+		        , wbc.busi_content "content"
+		        , to_char(wbc.busi_start_date ,'yyyy-mm-dd')||'('||to_char(wbc.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_start_date ,'am hh:mi')||' ~ '|| 
+		            to_char(wbc.busi_end_date ,'yyyy-mm-dd')||'('||to_char(wbc.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(wbc.busi_end_date ,'am hh:mi') "busi_date"
+		    from week_business_content wbc, code_business_type cbt,week_business_bundle wbb, week_business_report wbr
+		    where wbc.busi_type = cbt.busi_type_code and wbc.fin_state = 0 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no} 
+		    )  
+		order by "busi_date" desc
+	</select>
+	
+	
+   <!--*******************************************************-->
+   <!-- 미완료된 전체 보고서비율 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getUnfinishListPer" parameterType="com.daum.pro.MypageListDTO" resultType="int">   
+			select 
+    decode( (
+              (select count(*)
+               from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+               where wbc.fin_state = 0 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no}
+               ) + 
+              (select count(*) 
+               from daily_business_report dbr
+               where  dbr.fin_state= 0 and dbr.emp_no = #{emp_no} )
+            ) *
+            (
+              (select count(*)
+               from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+               where wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no}) +
+              (select count(*) 
+               from daily_business_report dbr
+               where dbr.emp_no = #{emp_no})
+            ),0,100,
+              round(
+                  (
+                      (select count(*)
+                       from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+                       where wbc.fin_state = 1 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no}
+                       ) + 
+                      (select count(*) 
+                       from daily_business_report dbr
+                       where  dbr.fin_state=1 and dbr.emp_no = #{emp_no} )
+                  ) /
+                  (
+                      (select count(*)
+                       from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+                       where wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no}) +
+                      (select count(*) 
+                       from daily_business_report dbr
+                       where dbr.emp_no = #{emp_no})
+                  ) *100
+                ,0)
+       )   "non_percent"
+		from dual
+
+	</select>
+	
+	
+   <!--*******************************************************-->
+   <!-- 미완료된 일일업무 보고서 비율 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getUnfinishDailyListPer" parameterType="com.daum.pro.MypageListDTO" resultType="int">   
+   		select decode(
+                
+                  ((select count(*) 
+                  from daily_business_report dbr
+                  where  dbr.fin_state=0 and dbr.emp_no = #{emp_no})
+                   *
+                  (select count(*) 
+                  from daily_business_report dbr
+                  where dbr.emp_no = #{emp_no}))
+               ,0,100,   
+                       round(
+                        (select count(*) 
+                        from daily_business_report dbr
+                        where  dbr.fin_state=1 and dbr.emp_no = #{emp_no})
+                         /
+                        (select count(*) 
+                        from daily_business_report dbr
+                        where dbr.emp_no =#{emp_no})
+                         *100
+                      ,0) 
+              )  "non_percent"
+		from dual
+
+   </select>
+   
+   <!--*******************************************************-->
+   <!-- 미완료된 주간업무 보고서 비율 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getUnfinishWeekListPer" parameterType="com.daum.pro.MypageListDTO" resultType="int">   
+   		select 
+	    decode(            
+	              ((select count(*)
+	              from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+	              where wbc.fin_state = 0 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no} ) 
+	               *
+	              (select count(*) 
+	               from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+	               where wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no}) )
+	           ,0,100
+	           ,round(
+	                (select count(*)
+	                from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+	                where wbc.fin_state = 1 and wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no} ) 
+	                 /
+	                (select count(*) 
+	                 from week_business_content wbc,week_business_bundle wbb, week_business_report wbr
+	                 where wbr.report_no = wbb.report_no and wbc.c_no = wbb.c_no and wbr.emp_no = #{emp_no})
+	                 *100
+	              ,0)
+	    )   "non_percent"
+		from dual
+
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 내 회원정보 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getMyPage" parameterType="com.daum.pro.MyPageDTO" resultType="java.util.HashMap">   
+         select e.emp_id "id", e.pwd "pwd"
+		 from employee e
+		 where e.emp_no = #{emp_no}
+   </select>   
+   
+   
+   <!--*******************************************************-->
+   <!-- 회사 보고서 종류 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getReports" parameterType="com.daum.pro.MyPageDTO" resultType="java.util.HashMap">   
+		select report_code "report_code"
+		from company_report 
+		where company_no = (select e.company_no from employee e where e.emp_no = #{emp_no})
+   </select>  
+   
+   
+   <!--*******************************************************-->
+   <!-- [1개 회원정보] 수정하는 update 문을 내포한 update 태그 선언-->
+   <!--*******************************************************-->
+   <update id="updateMyPage" parameterType="com.daum.pro.MyPageDTO">   
+         update employee set emp_id = #{id} , pwd = #{pwd} 
+		 where emp_no = #{emp_no}
+   </update>
+   
+
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 삭제하는 delete 문을 내포한 update 태그 선언-->
+   <!--*******************************************************-->
+   <delete id="deleteTable" parameterType="com.daum.pro.MyPageDTO">   
+		delete company_report 
+		where company_no = (select e.company_no from employee e where e.emp_no = #{emp_no})
+   </delete>    
+   
+
+   <!--*******************************************************-->
+   <!-- 보고서 종류 입력하는 insert 문을 내포한 update 태그 선언-->
+   <!--*******************************************************-->
+   <insert id="insertMyReport" parameterType="com.daum.pro.MyPageDTO">   
+		insert into company_report(
+	        company_re_no
+	        ,company_no
+	        ,report_code
+        )
+      <foreach item="list" collection="report_field"  index="idx" open="" separator=" union " close=""> 
+        select
+             (select nvl(max(company_re_no),1)+#{idx}+1 from company_report)   
+            ,(select e.company_no from employee e where e.emp_no = #{emp_no})
+            ,#{list}
+        from dual
+      </foreach>
+   </insert>   
+   
+   
+</mapper>
+
+

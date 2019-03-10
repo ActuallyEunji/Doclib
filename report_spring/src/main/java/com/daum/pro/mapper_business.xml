@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!-- mapper 태그선언 -->
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!--    namespace 속성값으로 [DAO 인터페이스명]이 오며 [DAO 인터페이스] 메소드명과 동일한 id 값을 소유한 태그를 내포고 있다.-->
+<!--*******************************************************-->
+<mapper namespace="com.daum.pro.BusinessDAO">
+
+   <!--*******************************************************-->
+   <!-- 게시판 총 행의 개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+    <select id="getBusinessBoardListCnt" parameterType="com.daum.pro.BusinessListDTO" resultType="int">
+    select count(*)
+   from (
+      
+           select
+                    sr.emp_no as "writer"
+                      ,sr.report_no as "report_no"
+                     ,(select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code) as "max_return_no"
+                     ,sr.report_name as "report_name"
+                     ,cst.sales_type_name as "sales_type"
+                     ,case when (select count(*) from sign_finish_report sfr2 where sfr2.report_code = 2 and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no and sfr2.sign_code = 3) >=1
+                          then '반려'
+                          when (select count(*) from sign_finish_report sfr2 where sfr2.report_code = 2 and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no and sfr2.sign_code in(2,3)) =0
+                          then '결재종료'
+                          else  cs.sign_name
+                      end  as "sign_name"
+                     ,to_char(sfr.sign_date ,'YYYY-MM-DD AM HH:MI')||' '||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')  as  "sign_date"
+                     ,to_char(sr.sales_start_date ,'YYYY-MM-DD AM HH:MI')||' '||to_char(sr.sales_start_date ,'dy', 'nls_date_language=korean')  as  "sales_date"
+                     ,(SELECT count(*) FROM sign_finish_report sfr WHERE sfr.report_no = sr.report_no  AND sfr.report_code = sr.report_code AND sfr.sign_code=1  and sfr.return_no
+                                                    = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code)
+                       )
+                       ||'/'||
+                       ( (select max(e2.company_emp_no) from employee e2  where e.company_no = e2.company_no)
+                         -(select company_emp_no from employee e where e.emp_no = sr.emp_no)+1)  as "sign_state"
+      
+      
+              from employee e, sales_report sr, code_sales_type cst, sign_finish_report sfr, code_sign cs
+              where sfr.report_code = sr.report_code and sfr.report_no = sr.report_no and sfr.sign_code = cs.sign_code
+              and sr.sales_type = cst.sales_type_code  and sfr.emp_no = e.emp_no
+               and sr.emp_no in(select e.emp_no from employee e where e.company_no = #{company_no})
+      
+                  and sfr.return_no = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code)
+                  and sfr.emp_no = #{emp_no}
+      
+                  <if test="min_approval_year!=null and min_approval_year!='' and min_approval_month!=null and min_approval_month!='' ">
+                    <![CDATA[ and sfr.sign_date>=to_date('${min_approval_year}-${min_approval_month}','YYYY-MM')  ]]>
+                  </if>
+                  <if test="max_approval_year!=null and max_approval_year!='' and max_approval_month!=null and max_approval_month!='' ">
+                    <![CDATA[  and sfr.sign_date<(last_day(to_date('${max_approval_year}-${max_approval_month}','YYYY-MM') ))+1  ]]>
+                  </if>
+      
+                 <if test="min_business_year!=null and min_business_year!='' and min_business_month!=null and min_business_month!='' ">
+                    <![CDATA[ and sr.sales_start_date>=to_date('${min_business_year}-${min_business_month}','YYYY-MM')  ]]>
+                 </if>
+                 <if test="max_business_year!=null and max_business_year!='' and max_business_month!=null and max_business_month!='' ">
+                    <![CDATA[  and sr.sales_end_date<(last_day(to_date('${max_business_year}-${max_business_month}','YYYY-MM') ))+1  ]]>
+      
+                 </if>
+      
+      
+      
+                 <if test="business_reasons!=null and business_reasons.size()>0 ">
+                     and sr.sales_type in
+                         <foreach item="business_reasons" collection="business_reasons" index="index" open="(" separator="," close=")" >
+                             #{business_reasons}
+                         </foreach>
+                 </if>
+      
+      
+              ) xxx where  1=1
+         <if test="approval_rejection!=null and approval_rejection.size()>0 ">
+                   and "sign_name" in
+                       <foreach item="approval_rejection" collection="approval_rejection" index="index" open="(" separator="," close=")" >
+                           decode(#{approval_rejection},1,'결재완료',2,'미결재',3,'반려',4,'결재종료')
+                       </foreach>
+            </if>
+            <if test=" keyword1!=null and keyword1!='' ">
+                   and (
+                            (
+                            upper("report_name") like upper('%${keyword1}%')
+
+                            or upper("sales_type") like upper('%${keyword1}%')
+
+                            or upper("sign_name") like upper('%${keyword1}%')
+
+                            or substr("sign_date",1,4) like '%${keyword1}%'
+                            or substr("sign_date",6,2) like '%${keyword1}%'
+                            or substr("sign_date",9,2) like '%${keyword1}%'
+                            or substr("sales_date",1,4) like '%${keyword1}%'
+                            or substr("sales_date",6,2) like '%${keyword1}%'
+                            or substr("sales_date",9,2) like '%${keyword1}%'
+                            )
+
+                          <if test="keyword2!=null and keyword2!='' ">
+                              <if test="or_and!=null and or_and!=''">
+                               <if test="or_and == 1">
+                                  or
+                               </if>
+                               <if test="or_and == 2">
+                                  and
+                               </if>
+
+                            (
+                            upper("report_name") like upper('%${keyword2}%')
+
+                            or upper("sales_type") like upper('%${keyword2}%')
+
+                            or upper("sign_name") like upper('%${keyword2}%')
+
+                            or substr("sign_date",1,4) like '%${keyword2}%'
+                            or substr("sign_date",6,2) like '%${keyword2}%'
+                            or substr("sign_date",9,2) like '%${keyword2}%'
+                            or substr("sales_date",1,4) like '%${keyword2}%'
+                            or substr("sales_date",6,2) like '%${keyword2}%'
+                            or substr("sales_date",9,2) like '%${keyword2}%'
+                            )
+
+                          </if>
+                      </if>)
+               </if>
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getBusinessBoardList" parameterType="com.daum.pro.BusinessListDTO" resultType="java.util.HashMap">   
+             select * from (
+    select xxx.*  ,  ROW_NUMBER() OVER(ORDER BY
+                    <if test="sort!=null and sort!='' "   >
+                        ${sort}
+                    </if>
+                    <if test="sort==null or sort=='' "   >
+                       "sign_date" desc
+                    </if>
+                     )  "r_num"
+    from (
+
+     select
+                    sr.emp_no as "writer"
+                      ,sr.report_no as "report_no"
+                     ,(select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code) as "max_return_no"
+                     ,sr.report_name as "report_name"
+                     ,cst.sales_type_name as "sales_type"
+                     ,case when (select count(*) from sign_finish_report sfr2 where sfr2.report_code = 2 and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no and sfr2.sign_code = 3) >=1
+                          then '반려'
+                          when (select count(*) from sign_finish_report sfr2 where sfr2.report_code = 2 and sfr2.report_no = sfr.report_no and sfr2.return_no = sfr.return_no and sfr2.sign_code in(2,3)) =0
+                          then '결재종료'
+                          else  cs.sign_name
+                      end  as "sign_name"
+                     ,to_char(sfr.sign_date ,'YYYY-MM-DD')||'('||to_char(sfr.sign_date ,'dy', 'nls_date_language=korean')||') '||to_char(sfr.sign_date ,'AM HH:MI')  as  "sign_date"
+                     ,to_char(sr.sales_start_date ,'YYYY-MM-DD')||'('||to_char(sr.sales_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(sr.sales_start_date ,'AM HH:MI')  as  "sales_date"
+                     ,(SELECT count(*) FROM sign_finish_report sfr WHERE sfr.report_no = sr.report_no  AND sfr.report_code = sr.report_code AND sfr.sign_code in(1,3)  and sfr.return_no
+                                                    = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code)
+                       )
+                       ||'/'||
+                       ( (select max(e2.company_emp_no) from employee e2  where e.company_no = e2.company_no)
+                         -(select company_emp_no from employee e where e.emp_no = sr.emp_no)+1)  as "sign_state"
+      
+      
+              from employee e, sales_report sr, code_sales_type cst, sign_finish_report sfr, code_sign cs
+              where sfr.report_code = sr.report_code and sfr.report_no = sr.report_no and sfr.sign_code = cs.sign_code
+              and sr.sales_type = cst.sales_type_code  and sfr.emp_no = e.emp_no
+              and sr.emp_no in(select e.emp_no from employee e where e.company_no = #{company_no})
+      
+              and sfr.return_no = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sr.report_no and sfr2.report_code= sr.report_code)
+              and sfr.emp_no = #{emp_no}     
+                  
+              <if test="min_approval_year!=null and min_approval_year!='' and min_approval_month!=null and min_approval_month!='' ">
+                <![CDATA[ and sfr.sign_date>=to_date('${min_approval_year}-${min_approval_month}','YYYY-MM')  ]]>
+              </if>
+              <if test="max_approval_year!=null and max_approval_year!='' and max_approval_month!=null and max_approval_month!='' ">
+                <![CDATA[  and sfr.sign_date<(last_day(to_date('${max_approval_year}-${max_approval_month}','YYYY-MM') ))+1  ]]>
+              </if>
+      
+             <if test="min_business_year!=null and min_business_year!='' and min_business_month!=null and min_business_month!='' ">
+                <![CDATA[ and sr.sales_start_date>=to_date('${min_business_year}-${min_business_month}','YYYY-MM')  ]]>
+             </if>
+             <if test="max_business_year!=null and max_business_year!='' and max_business_month!=null and max_business_month!='' ">
+                <![CDATA[  and sr.sales_end_date<(last_day(to_date('${max_business_year}-${max_business_month}','YYYY-MM') ))+1  ]]>
+      
+             </if>
+      
+      
+      
+             <if test="business_reasons!=null and business_reasons.size()>0 ">
+                 and sr.sales_type in
+                     <foreach item="business_reasons" collection="business_reasons" index="index" open="(" separator="," close=")" >
+                         #{business_reasons}
+                     </foreach>
+             </if>
+      
+
+             
+        ) xxx   where  1=1
+            <if test="approval_rejection!=null and approval_rejection.size()>0 ">
+                         and "sign_name" in
+                             <foreach item="approval_rejection" collection="approval_rejection" index="index" open="(" separator="," close=")" >
+                                 decode(#{approval_rejection},1,'결재완료',2,'미결재',3,'반려',4,'결재종료')
+                             </foreach>
+            </if>
+            <if test=" keyword1!=null and keyword1!='' ">
+                   and (
+                            (
+                            upper("report_name") like upper('%${keyword1}%')
+
+                            or upper("sales_type") like upper('%${keyword1}%')
+
+                            or upper("sign_name") like upper('%${keyword1}%')
+
+                            or substr("sign_date",1,4) like '%${keyword1}%'
+                            or substr("sign_date",6,2) like '%${keyword1}%'
+                            or substr("sign_date",9,2) like '%${keyword1}%'
+                            or substr("sales_date",1,4) like '%${keyword1}%'
+                            or substr("sales_date",6,2) like '%${keyword1}%'
+                            or substr("sales_date",9,2) like '%${keyword1}%'
+                            )
+
+                          <if test="keyword2!=null and keyword2!='' ">
+                              <if test="or_and!=null and or_and!=''">
+                               <if test="or_and == 1">
+                                  or
+                               </if>
+                               <if test="or_and == 2">
+                                  and
+                               </if>
+
+                            (
+                            upper("report_name") like upper('%${keyword2}%')
+
+                            or upper("sales_type") like upper('%${keyword2}%')
+
+                            or upper("sign_name") like upper('%${keyword2}%')
+
+                            or substr("sign_date",1,4) like '%${keyword2}%'
+                            or substr("sign_date",6,2) like '%${keyword2}%'
+                            or substr("sign_date",9,2) like '%${keyword2}%'
+                            or substr("sales_date",1,4) like '%${keyword2}%'
+                            or substr("sales_date",6,2) like '%${keyword2}%'
+                            or substr("sales_date",9,2) like '%${keyword2}%'
+                            )
+
+                    </if>
+                  </if>)
+               </if>
+        
+          <![CDATA[
+         ) zzz where "r_num">=${beginRowNo} and "r_num"<=${endRowNo} ]]>
+
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 결재내역 테이블 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+    <select id="getTableList" parameterType="com.daum.pro.BusinessListDTO" resultType="java.util.HashMap">   
+         select rownum||'차' "row_num", emp_name||'('||jikup_name||')' "emp_name", jikup_name "jikup" ,emp_no "emp_no"
+         from employee e, code_jikup cj 
+         where e.jikup= cj.jikup_code 
+                 and company_no = (select company_no from employee where emp_no = #{emp_no})
+                 and company_emp_no >=(select company_emp_no from employee where emp_no = #{emp_no})
+         order by company_emp_no
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 결재내역 테이블 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+    <select id="getFinishEmp" parameterType="com.daum.pro.BusinessDTO" resultType="java.util.HashMap">   
+         select sfr.emp_no "emp_no", cj.jikup_name "jikup", decode(sfr.sign_code,1,'결재완료','기타') "sign_code"
+	      from sales_report sr, sign_finish_report sfr, code_jikup cj, employee e
+	      where sr.report_code = sfr.report_code and sr.report_no = sfr.report_no and cj.jikup_code = e.jikup and sfr.emp_no = e.emp_no and sr.report_no = #{report_no}
+	      and sfr.return_no = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = sfr.report_no and sfr2.report_code = sfr.report_code) 
+	      order by  decode(cj.jikup_name,'사원',1,'주임',2,'대리',3,'과장',4,'팀장',5,'부장',6,'상무',7,'전무',8,'사장',9)
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판에서 영업보고서 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertBusiness_report"  parameterType="com.daum.pro.BusinessDTO" >
+         insert into sales_report(
+                report_no
+                , report_code
+                ,report_name
+                ,sales_type
+                ,sales_start_date
+                ,sales_end_date
+                ,sales_content
+                ,sales_result
+                ,emp_no
+          )
+           values(
+               (select nvl(max(report_no),0)+1 from sales_report)
+                  ,2
+                  ,#{business_name}
+                  ,#{business_field}
+                  ,to_date(#{min_business_year}||#{min_business_month}||#{min_business_day}||#{min_business_hour}||#{min_business_minute}, 'yyyymmddhh24mi')
+                  ,to_date(#{max_business_year}||#{max_business_month}||#{max_business_day}||#{max_business_hour}||#{max_business_minute}, 'yyyymmddhh24mi')
+                  ,#{business_content}
+                  ,#{business_result}
+                  ,#{emp_no}
+          )
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 만난 사람 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertSales_person"  parameterType="java.util.HashMap" >
+            merge into sales_meeting_person smp
+            using dual
+            on (p_no = (select p_no from sales_meeting_person smp2 where smp2.p_name = #{person_name} and smp2.jikup = #{business_jikup} and smp2.phone = #{person_phone}))                         
+            when not matched then
+            insert (
+              p_no
+              ,p_name
+              ,jikup
+              ,phone
+          )
+            values ( 
+            (select nvl(max(p_no),0)+1 from sales_meeting_person)
+            , #{person_name}
+            , #{business_jikup}
+            , #{person_phone}
+                       
+            )
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertTable"  parameterType="com.daum.pro.BusinessDTO" >
+          insert into s_report_person(
+                 sm_no
+                 ,report_no
+                 ,p_no
+         )
+           <foreach item="personList" collection="personlist"  index="idx" open="" separator=" union " close="">
+               select
+                  (select nvl(max(sm_no),0)+1+#{idx} from s_report_person)
+                     ,(select max(report_no) from sales_report)
+                     ,(select p_no from sales_meeting_person smp where smp.p_name = #{personList.person_name} and smp.phone= #{personList.person_phone})
+               from dual
+          </foreach>
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 이어주는 테이블 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertTable2"  parameterType="com.daum.pro.BusinessDTO" >
+          insert into s_report_person(
+                 sm_no
+                 ,report_no
+                 ,p_no
+         )
+           <foreach item="personList" collection="personlist"  index="idx" open="" separator=" union " close="">
+               select
+                  (select nvl(max(sm_no),0)+1+#{idx} from s_report_person)
+                     ,#{report_no}
+                     ,(select p_no from sales_meeting_person smp where smp.p_name = #{personList.person_name} and smp.phone= #{personList.person_phone})
+               from dual
+          </foreach>
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판에서 sign_finish_report 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertSign_report"  parameterType="com.daum.pro.BusinessDTO" >
+         insert into sign_finish_report(
+                sign_finish_no
+                , emp_no
+                , report_code
+                , report_no
+                , sign_date
+                , sign_code
+                ,return_no
+             )
+           <foreach item="emp_info" collection="tableList" index="idx" open="" separator=" union " close="">
+                select
+                   (select nvl(max(sign_finish_no),0)+1+#{idx} from sign_finish_report)
+                    ,#{emp_info.emp_no}
+                    ,2
+                    ,(select nvl(max(report_no),1) from sales_report)
+                    ,sysdate
+                    ,decode( #{emp_info.emp_no}, #{emp_no} ,1,2)
+                    ,(select nvl(max(return_no),0)+1 from sign_finish_report where report_code=2 and report_no = #{report_no})
+                from dual
+           </foreach>
+   </insert>
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판에서 sign_finish_report 등록하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertSign_report2"  parameterType="com.daum.pro.BusinessDTO" >
+         insert into sign_finish_report(
+                sign_finish_no
+                , emp_no
+                , report_code
+                , report_no
+                , sign_date
+                , sign_code
+                ,return_no
+             )
+           <foreach item="emp_info" collection="tableList" index="idx" open="" separator=" union " close="">
+                select
+                   (select nvl(max(sign_finish_no),0)+1+#{idx} from sign_finish_report)
+                    ,#{emp_info.emp_no}
+                    ,2
+                    ,#{report_no}
+                    ,sysdate
+                    ,decode( #{emp_info.emp_no}, #{emp_no} ,1,2)
+                    ,(select nvl(max(return_no),0)+1 from sign_finish_report where report_code=2 and report_no = #{report_no})
+                from dual
+           </foreach>
+   </insert>
+   
+   
+    <!--*******************************************************-->
+    <!-- 상사의 보고서 결재상황 검색하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+     <select id="getReport_Approval" parameterType="com.daum.pro.BusinessDTO" resultType="int">
+            select count(*)
+            from sign_finish_report sfr, employee e
+            where sfr.emp_no = e.emp_no and sfr.report_code = 2 and sfr.report_no = #{report_no} and sfr.return_no = (select max(return_no) from sign_finish_report where report_code=2 and report_no = #{report_no})
+                  and e.company_emp_no = (select company_emp_no from employee where emp_no = #{emp_no})+1 and sign_code != 2
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 영업내역 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+   <select id="getupDelBusinessList" parameterType="com.daum.pro.BusinessDTO" resultType="java.util.HashMap">      
+             select
+                sr.report_name "report_name"
+               ,sr.sales_type "sales_type"
+               ,to_char(sr.sales_start_date ,'yyyy-mm-dd-hh24:mi')||' '||to_char(sr.sales_start_date ,'dy', 'nls_date_language=korean')  as  "sales_start_date"
+               ,to_char(sr.sales_end_date ,'yyyy-mm-dd-hh24:mi')||' '||to_char(sr.sales_end_date ,'dy', 'nls_date_language=korean')  as  "sales_end_date"
+               ,sr.sales_content     "sales_content"
+               ,sr.sales_result     "sales_result"
+               ,sr.revise_cnt "revise_cnt"
+
+        from sales_report sr
+        where  sr.report_no = #{report_no}
+   </select>
+   
+   
+   <!--*******************************************************-->
+   <!-- 만난사람 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+   <select id="getSalesPersonList" parameterType="com.daum.pro.BusinessDTO" resultType="java.util.HashMap">   
+         select
+              p_name  "p_name"
+              ,jikup  "jikup"
+              ,phone  "phone"
+        from sales_meeting_person smp, s_report_person srp
+        where smp.p_no = srp.p_no and srp.report_no = #{report_no}      
+   </select>
+
+
+   <!--*******************************************************-->
+   <!-- 결재내역 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+   <select id="selectApprovallist" parameterType="com.daum.pro.BusinessDTO" resultType="java.util.HashMap">   
+          select "row_num", "emp_name", "sign_state" , "return_no",(select max(return_no) from sign_finish_report where report_code = 2 and report_no = #{report_no}) "max_return_no" from
+         (
+           <foreach item="return_no" collection="return_no_list" index="idx" open="" separator=" union " close="">  
+             ( select
+             
+               rownum||'차' "row_num", e.emp_name||'('||jikup_name||')' "emp_name", e.company_emp_no "company_emp_no", sfr.return_no "return_no"
+
+                       ,case 
+                            when cs.sign_name in ('결재완료','반려') and (select count(*) 
+                                                                 from sign_finish_report sfr2, employee e 
+                                                                    where sfr2.emp_no = e.emp_no and sfr2.report_code = 2 and sfr2.report_no = #{report_no}
+                                                                  and e.company_emp_no = (select company_emp_no from employee where emp_no = sfr.emp_no)+1 and sign_code != 2)=0  
+                                                                  and sfr.emp_no = #{emp_no} and sfr.return_no = (select max(return_no) from sign_finish_report where report_code=2 and report_no =#{report_no}) 
+                                                                    
+                                    then '결재하기'                       
+                               when cs.sign_name = '반려' then '반려완료 (반려사유 : '||(select return_result from return_report rr where rr.sfr_no = sfr.sign_finish_no)||' )'
+                             when cs.sign_name = '미결재' and  (select max(e2.company_emp_no) from sign_finish_report sfr2, employee e2
+                                                                 where  sfr2.report_code=2
+                                                                         and sfr2.report_no = #{report_no}
+                                                                         and sfr2.return_no = #{idx}+1
+                                                                         and  sfr2.sign_code=1 and e2.emp_no = sfr2.emp_no ) in (e.company_emp_no -1, e.company_emp_no)
+                                                           and e.company_emp_no = (select e3.company_emp_no from employee e3 where e3.emp_no = #{emp_no})
+                                                           and (select count(*) from sign_finish_report sfr2 where sfr2.report_code=2
+                                                                                                        and sfr2.report_no = #{report_no}
+                                                                                                        and sfr2.return_no = #{idx}+1
+                                                                                                        and sfr2.sign_code in(3) ) =0
+                                     then '결재하기'
+                             
+                             
+                             when cs.sign_name = '미결재' then '결재예정'
+                             else cs.sign_name end     "sign_state"
+
+
+                   from sign_finish_report sfr,
+                        code_sign cs,
+                        employee e,
+                        code_jikup cj
+
+                   where sfr.emp_no  = e.emp_no
+                         and e.jikup= cj.jikup_code
+                         and sfr.report_code=2
+                         and sfr.report_no = #{report_no}
+                         and sfr.return_no = #{idx}+1
+                         and cs.sign_code = sfr.sign_code )
+
+           </foreach>
+         ) zzz order by "return_no","row_num"
+   
+   </select>
+
+
+   <!--*******************************************************-->
+   <!-- 지출보고서 결재내역 수정한 내역 검색하는 select문을 포함한 select 태그 선언 -->
+   <!--*******************************************************-->
+   <select id="updateList" parameterType="com.daum.pro.BusinessDTO" resultType="java.util.HashMap">   
+		select sfr.sign_code  "sign_code" , decode(sfr.sign_code,3,(select return_result from return_report rr where rr.sfr_no = sfr.sign_finish_no),'x' ) "return_result"
+		from sign_finish_report sfr 
+		where  sfr.report_code = 2 and sfr.report_no = #{report_no} and sfr.emp_no = #{emp_no} 
+        and sfr.return_no = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_no = #{report_no} and sfr2.report_code = 2)
+   </select>
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- update전 그사이 수정이 일어났는지 체크하는 select문.(추가된것) -->
+   <!--*******************************************************-->
+   <select id="checkupdate" parameterType="com.daum.pro.BusinessDTO" resultType="int">      
+         select        
+               sr.revise_cnt "revise_cnt"
+        from sales_report sr
+        where  sr.report_no = #{report_no}
+   </select>
+   
+         
+         
+   <!--*******************************************************-->
+   <!-- 보고서 수정을 위해 만난 사람 이어주는 테이블 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deleteSalesTable"  parameterType="com.daum.pro.BusinessDTO">
+         delete s_report_person
+            where report_no = #{report_no}
+   </delete>
+   
+      
+   <!--*******************************************************-->
+   <!-- 보고서 수정을 위해 만난 사람 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletePerson"  parameterType="com.daum.pro.BusinessDTO">
+         delete sales_meeting_person 
+           where p_no not in(
+                 select smp.p_no from s_report_person srp, sales_meeting_person smp, sales_report sr 
+                 where srp.p_no = smp.p_no and sr.report_no = srp.report_no  
+           )      
+   </delete>
+   
+              
+   <!--*******************************************************-->
+   <!-- 보고서 수정하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->   
+   <update id="updateReport"  parameterType="com.daum.pro.BusinessDTO" >   
+          update sales_report
+            set report_name = #{business_name}
+               , sales_type = #{business_field}
+               , sales_start_date = to_date(#{min_business_year}||#{min_business_month}||#{min_business_day}||#{min_business_hour}||#{min_business_minute}, 'yyyymmddhh24mi')
+               , sales_end_date = to_date(#{max_business_year}||#{max_business_month}||#{max_business_day}||#{max_business_hour}||#{max_business_minute}, 'yyyymmddhh24mi')
+               , sales_content = #{business_content}
+               , sales_result = #{business_result}
+               , revise_cnt = (select revise_cnt+1 from sales_report where report_no = #{report_no})
+            where report_no = #{report_no} and emp_no = #{emp_no}
+   </update>
+   
+   
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 보고서 수정상황+1 해주는 update문(상사가 수정시 실행됨) (추가된것) -->
+   <!--*******************************************************-->
+   <update id="updateCheck"  parameterType="com.daum.pro.BusinessDTO" >
+          update sales_report
+            set revise_cnt = (select revise_cnt+1 from sales_report where report_no = #{report_no})
+            where report_no = #{report_no}
+   </update>
+   
+   
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 결제 여부 업데이트하는 update문을 내포한 update태그 선언(결재하기 누름) -->
+   <!--*******************************************************-->
+   <update id="updateApproval"  parameterType="com.daum.pro.BusinessDTO" >
+          update sign_finish_report set sign_code = 1, sign_date = sysdate
+            where report_code=2 and report_no = #{report_no}
+               and return_no = (select max(return_no) from sign_finish_report where report_code=2 and report_no = #{report_no})
+               and emp_no = #{emp_no}
+   </update>
+   
+   
+   <!--*******************************************************-->
+   <!-- 결제 여부 업데이트하는 update문을 내포한 update태그 선언(반려하기 누름) -->
+   <!--*******************************************************-->
+   <update id="updateApproval2"  parameterType="com.daum.pro.BusinessDTO" >
+          update sign_finish_report set sign_code=3, sign_date = sysdate
+            where report_code=2 and report_no =#{report_no}
+               and return_no = (select max(return_no) from sign_finish_report where report_code=2  and report_no = #{report_no})
+               and emp_no = #{emp_no}
+   </update>
+   
+   
+   <!--*******************************************************-->
+   <!-- 반려사유 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertSign_check"  parameterType="com.daum.pro.BusinessDTO" >
+          merge into return_report
+			using dual
+			on (sfr_no =(select sfr.sign_finish_no from sign_finish_report sfr 
+							where sfr.report_no = #{report_no} and sfr.report_code = 2 and sfr.emp_no =#{emp_no} 
+							and return_no = (select max(sfr2.return_no) from sign_finish_report sfr2 where sfr2.report_code = sfr.report_code and sfr2.report_no = sfr.report_no)))
+			when matched then
+			update set return_result= nvl(#{no_confirm_reason},'-') 
+			when not matched then
+			insert (
+				r_report_no
+				,sfr_no
+				,return_result
+			)
+			values ( (select nvl(max(r_report_no),0)+1 from return_report)
+			,(select sign_finish_no from sign_finish_report 
+				where report_code=2 and report_no =#{report_no} 
+				and return_no = (select max(return_no) from sign_finish_report where report_code=2 and report_no = #{report_no}) and emp_no = #{emp_no})
+			, #{no_confirm_reason}
+			)
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- return_report 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletereport"  parameterType="com.daum.pro.BusinessDTO" >
+         delete return_report 
+         where sfr_no in (select sign_finish_no from sign_finish_report where report_no = #{report_no} and report_code = 2)
+   </delete>   
+   
+   
+   <!--*******************************************************-->
+   <!-- sign_finish_report 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletesign"  parameterType="com.daum.pro.BusinessDTO" >
+         delete sign_finish_report 
+         where sign_finish_no in (select sign_finish_no from sign_finish_report where report_no = #{report_no} and report_code = 2)
+   </delete>
+   
+   
+   <!--*******************************************************-->
+   <!-- business_report 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletebusiness"  parameterType="com.daum.pro.BusinessDTO" >
+         delete sales_report where report_no = #{report_no}
+   </delete>
+   
+</mapper>
+
+
+
+

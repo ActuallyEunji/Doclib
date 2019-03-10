@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!-- mapper 태그선언 -->
+<!--mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-->
+<!--    namespace 속성값으로 [DAO 인터페이스명]이 오며 [DAO 인터페이스] 메소드명과 동일한 id 값을 소유한 태그를 내포고 있다.-->
+<!--*******************************************************-->
+<mapper namespace="com.daum.pro.DailyDAO">
+
+   <!--*******************************************************-->
+   <!-- 게시판 총 행의 개수 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+<select id="getDailyBoardListCnt" parameterType="com.daum.pro.DailyListDTO" resultType="int">
+       select count(*)
+          from(
+      
+                select
+                   dbr.emp_no "writer"
+                   ,e.emp_name "writer_name"
+                   ,dbr.report_no  "report_no"
+                   ,cbt.busi_type_name "daily_business_field"
+                   ,dbr.busi_content "daily_business_content"
+                   ,to_char(dbr.busi_start_date ,'yyyy-mm-dd-hh24:mi')||' '||to_char(dbr.busi_start_date ,'dy', 'nls_date_language=korean')||'~'
+                                ||to_char(dbr.busi_end_date ,'yyyy-mm-dd-hh24:mi')||' '||to_char(dbr.busi_end_date ,'dy', 'nls_date_language=korean')  as  "busi_date"
+                   ,decode(dbr.fin_state,0,'미완료',1,'완료') "is_daily_business_finish"
+                    ,nvl((select instructions from daily_business_instruction where report_no = dbr.report_no),'-') "daily_business_remarks" 
+      
+                from employee e, daily_business_report dbr, code_business_type cbt
+                where e.emp_no = dbr.emp_no and dbr.busi_type = cbt.busi_type_code
+                 <![CDATA[ and dbr.emp_no in(select e2.emp_no from employee e2 where e2.company_no = #{company_no} and e2.company_emp_no <=#{company_emp_no} ) ]]>
+      
+      
+                   <if test="min_daily_business_year!=null and min_daily_business_year!='' and min_daily_business_month!=null and min_daily_business_month!='' and min_daily_business_date!=null and min_daily_business_date!='' ">
+                    <![CDATA[ and dbr.busi_start_date>=to_date('${min_daily_business_year}-${min_daily_business_month}-${min_daily_business_date}','YYYY-MM-dd')  ]]>
+                  </if>
+      
+                  <if test="max_daily_business_year!=null and max_daily_business_year!='' and max_daily_business_month!=null and max_daily_business_month!='' and min_daily_business_date!=null and max_daily_business_date!='' ">
+                    <![CDATA[  and dbr.busi_start_date<=last_day(to_date('${max_daily_business_year}-${max_daily_business_month}-${max_daily_business_date}','YYYY-MM-dd') )  ]]>
+                  </if>
+      
+                  <if test="(min_daily_business_hour!=null and min_daily_business_hour!='' ) and (min_daily_business_minute!=null and min_daily_business_minute!='')">
+                  <![CDATA[  and to_char(dbr.busi_start_date, 'hh24mi')>= #{min_daily_business_hour}||#{min_daily_business_minute}  ]]>
+               </if>
+               
+               <if test="(max_daily_business_hour!=null and max_daily_business_hour!='')  and ( max_daily_business_minute!=null and max_daily_business_minute!='' )">
+                  <![CDATA[  and to_char(dbr.busi_start_date, 'hh24mi')<= #{max_daily_business_hour}||#{max_daily_business_minute}  ]]>
+               </if>
+               
+                   <if test="min_daily_business_hour!=null and min_daily_business_hour!=''">
+                       <![CDATA[  and to_char(dbr.busi_start_date, 'hh24')>= #{min_daily_business_hour}  ]]>
+                  </if>
+      
+                  <if test="max_daily_business_hour!=null and max_daily_business_hour!=''">
+                       <![CDATA[  and to_char(dbr.busi_start_date, 'hh24')<= #{max_daily_business_hour}  ]]>
+                  </if>
+      
+      
+                  <if test="daily_business_field!=null and daily_business_field.size()>0 ">
+                     and dbr.busi_type in
+                         <foreach item="daily_business_field" collection="daily_business_field" index="index" open="(" separator="," close=")" >
+                             #{daily_business_field}
+                         </foreach>
+                  </if>
+      
+                  <if test="is_daily_business_finish!=null and is_daily_business_finish.size()>0  ">
+                     and dbr.fin_state in 
+                           <foreach item="is_daily_business_finish" collection="is_daily_business_finish" index="index" open="(" separator="," close=")" >
+                            #{is_daily_business_finish}
+                         </foreach>
+                     
+                  </if>
+      
+      
+                    ) xxx where  1=1
+      
+                  <if test=" keyword1!=null and keyword1!='' ">
+                          and (
+                               (
+                               upper("writer_name") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_field") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_content") like upper('%${keyword1}%')
+   
+                               or upper("is_daily_business_finish") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_remarks") like upper('%${keyword1}%')
+   
+                               )
+   
+                             <if test="keyword2!=null and keyword2!='' ">
+                                 <if test="or_and!=3">
+                                  <if test="or_and == 1">
+                                     or
+                                  </if>
+                                  <if test="or_and == 2">
+                                     and
+                                  </if>
+   
+                               (
+                               upper("writer_name") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_field") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_content") like upper('%${keyword2}%')
+   
+                               or upper("is_daily_business_finish") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_remarks") like upper('%${keyword2}%')
+   
+                               or substr("busi_date",1,4) like '%${keyword2}%'
+                               or substr("busi_date",6,2) like '%${keyword2}%'
+                               or substr("busi_date",9,2) like '%${keyword2}%'
+                               )
+   
+                       </if>
+                     </if>)
+                     </if>
+   </select> 
+   
+   
+   <!--*******************************************************-->
+   <!-- 게시판 목록 검색하는 select 문을 내포한 select 태그 선언-->
+   <!--*******************************************************-->
+   <select id="getDailyBoardList" parameterType="com.daum.pro.DailyListDTO" resultType="java.util.HashMap">   
+      select zzz.* from (
+          select xxx.* 
+          from(
+      
+                select
+                   dbr.emp_no "writer"
+                   ,e.emp_name "writer_name"
+                   ,dbr.report_no  "report_no"
+                   ,cbt.busi_type_name "daily_business_field"
+                   ,dbr.busi_content "daily_business_content"
+               ,to_char(dbr.busi_start_date ,'YYYY-MM-DD')||'('||to_char(dbr.busi_start_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_start_date ,'AM HH:MI')||'~'
+                                ||to_char(dbr.busi_end_date ,'YYYY-MM-DD')||'('||to_char(dbr.busi_end_date ,'dy', 'nls_date_language=korean')||') '||to_char(dbr.busi_end_date ,'AM HH:MI')
+                                                                                                                                 as  "busi_date"
+                   ,decode(dbr.fin_state,0,'미완료',1,'완료') "is_daily_business_finish"
+                    ,nvl((select instructions from daily_business_instruction where report_no = dbr.report_no),'-') "daily_business_remarks" 
+                    ,  ROW_NUMBER() OVER(ORDER BY
+                    
+                            <if test="sort!=null and sort!='' "   >
+                                 ${sort}
+                            </if>
+                            <if test="sort==null or sort=='' "   >
+                                dbr.busi_start_date  DESC
+                            </if> 
+                    
+                            
+                       )  "r_num"
+                from employee e, daily_business_report dbr, code_business_type cbt
+                where e.emp_no = dbr.emp_no and dbr.busi_type = cbt.busi_type_code
+                  and dbr.emp_no in(select e2.emp_no from employee e2 where e2.company_no = #{company_no} and e2.company_emp_no &lt;=#{company_emp_no} ) 
+      
+                   <if test="min_daily_business_year!=null and min_daily_business_year!='' and min_daily_business_month!=null and min_daily_business_month!='' and min_daily_business_date!=null and min_daily_business_date!='' ">
+                    <![CDATA[ and dbr.busi_start_date>=to_date('${min_daily_business_year}-${min_daily_business_month}-${min_daily_business_date}','YYYY-MM-dd')  ]]>
+                  </if>
+      
+                  <if test="max_daily_business_year!=null and max_daily_business_year!='' and max_daily_business_month!=null and max_daily_business_month!='' and min_daily_business_date!=null and max_daily_business_date!='' ">
+                    <![CDATA[  and dbr.busi_start_date<=last_day(to_date('${max_daily_business_year}-${max_daily_business_month}-${max_daily_business_date}','YYYY-MM-dd') )  ]]>
+                  </if>
+      
+                  <if test="(min_daily_business_hour!=null and min_daily_business_hour!='' ) and (min_daily_business_minute!=null and min_daily_business_minute!='')">
+                  <![CDATA[  and to_char(dbr.busi_start_date, 'hh24mi')>= #{min_daily_business_hour}||#{min_daily_business_minute}  ]]>
+               </if>
+               
+               <if test="(max_daily_business_hour!=null and max_daily_business_hour!='')  and ( max_daily_business_minute!=null and max_daily_business_minute!='' )">
+                  <![CDATA[  and to_char(dbr.busi_start_date, 'hh24mi')<= #{max_daily_business_hour}||#{max_daily_business_minute}  ]]>
+               </if>
+               
+                   <if test="min_daily_business_hour!=null and min_daily_business_hour!=''">
+                       <![CDATA[  and to_char(dbr.busi_start_date, 'hh24')>= #{min_daily_business_hour}  ]]>
+                  </if>
+      
+                  <if test="max_daily_business_hour!=null and max_daily_business_hour!=''">
+                       <![CDATA[  and to_char(dbr.busi_start_date, 'hh24')<= #{max_daily_business_hour}  ]]>
+                  </if>
+      
+      
+                  <if test="daily_business_field!=null and daily_business_field.size()>0 ">
+                     and dbr.busi_type in
+                         <foreach item="daily_business_field" collection="daily_business_field" index="index" open="(" separator="," close=")" >
+                             #{daily_business_field}
+                         </foreach>
+                  </if>
+      
+                  <if test="is_daily_business_finish!=null and is_daily_business_finish.size()>0  ">
+                     and dbr.fin_state in 
+                           <foreach item="is_daily_business_finish" collection="is_daily_business_finish" index="index" open="(" separator="," close=")" >
+                            #{is_daily_business_finish}
+                         </foreach>
+                     
+                  </if>
+              )   xxx
+              
+             where 1=1
+             
+      
+                  <if test=" keyword1!=null and keyword1!='' ">
+                          and (
+                               (
+                               upper("writer_name") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_field") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_content") like upper('%${keyword1}%')
+   
+                               or upper("is_daily_business_finish") like upper('%${keyword1}%')
+   
+                               or upper("daily_business_remarks") like upper('%${keyword1}%')
+   
+                               )
+   
+                             <if test="keyword2!=null and keyword2!='' ">
+                                 <if test="or_and!=3">
+                                  <if test="or_and == 1">
+                                     or
+                                  </if>
+                                  <if test="or_and == 2">
+                                     and
+                                  </if>
+   
+                               (
+                               upper("writer_name") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_field") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_content") like upper('%${keyword2}%')
+   
+                               or upper("is_daily_business_finish") like upper('%${keyword2}%')
+   
+                               or upper("daily_business_remarks") like upper('%${keyword2}%')
+   
+                               or substr("busi_date",1,4) like '%${keyword2}%'
+                               or substr("busi_date",6,2) like '%${keyword2}%'
+                               or substr("busi_date",9,2) like '%${keyword2}%'
+                               )
+   
+                       </if>
+                     </if>)
+                     </if>
+                     
+                      <![CDATA[
+                      and "r_num">=${beginRowNo} and "r_num"<=${endRowNo} 
+                      
+                         ) zzz ]]>
+   </select> 
+   
+   
+   
+   <!--*******************************************************-->
+   <!-- 일일 업무보고서 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertDaily"  parameterType="com.daum.pro.DailyDTO" >
+         insert into daily_business_report(
+              report_no
+             ,report_code
+             ,busi_type
+             ,busi_start_date
+             ,busi_end_date
+             ,busi_content
+             ,fin_state
+             ,emp_no
+         )
+         values(  
+               (select nvl(max(report_no),0)+1 from daily_business_report)
+                 ,3
+                 ,#{daily_business_field}
+                 ,to_date(#{begin_daily_business_year}||#{begin_daily_business_month}||#{begin_daily_business_date}||#{begin_daily_business_hour}||#{begin_daily_business_minute}, 'yyyymmddhh24mi')
+                 ,to_date(#{end_daily_business_year}||#{end_daily_business_month}||#{end_daily_business_date}||#{end_daily_business_hour}||#{end_daily_business_minute}, 'yyyymmddhh24mi')
+                 ,#{daily_business_content}
+                 <if test=" is_daily_business_finish!=null and is_daily_business_finish!='' ">
+                     ,1
+                 </if>
+                 <if test=" is_daily_business_finish==null or is_daily_business_finish=='' ">
+                     ,0
+                 </if>
+                 ,#{emp_no}
+         )
+   </insert>
+   
+
+   
+    <!--*******************************************************-->
+    <!-- 일일 업무보고서 내역 검색하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+     <select id="getupDeldaily" parameterType="com.daum.pro.DailyDTO" resultType="java.util.HashMap">
+           select
+              e.emp_name "writer_name"
+              ,dbr.report_no  "report_no"
+              ,dbr.busi_type "daily_business_field"
+              ,dbr.busi_content "daily_business_content"
+              ,to_char(dbr.busi_start_date ,'yyyy')                              "begin_daily_business_year"
+              ,to_char(dbr.busi_start_date ,'mm')                                "begin_daily_business_month"
+              ,to_char(dbr.busi_start_date ,'dd')                                "begin_daily_business_date"
+              ,to_char(dbr.busi_start_date ,'hh24')                              "begin_daily_business_hour"
+              ,to_char(dbr.busi_start_date ,'mi')                                "begin_daily_business_minute"
+              ,to_char(dbr.busi_start_date ,'dy', 'nls_date_language=korean')    "begin_daily_business_day"
+         
+              ,to_char(dbr.busi_start_date ,'yyyy')                              "end_daily_business_year"
+              ,to_char(dbr.busi_end_date ,'mm')                                  "end_daily_business_month"
+              ,to_char(dbr.busi_end_date ,'dd')                                  "end_daily_business_date"
+              ,to_char(dbr.busi_end_date ,'hh24')                                "end_daily_business_hour"
+              ,to_char(dbr.busi_end_date ,'mi')                                  "end_daily_business_minute"
+              ,to_char(dbr.busi_end_date ,'dy', 'nls_date_language=korean')      "end_daily_business_day"
+              ,dbr.fin_state "is_daily_business_finish"
+              ,nvl((select bi.instructions from daily_business_instruction bi 
+                        where dbr.report_no = bi.report_no),'')                 "daily_business_remarks"
+                 ,nvl((select e2.emp_name||'('||cj.jikup_name||')' from code_jikup cj, employee e2, daily_business_instruction bi 
+                        where e2.emp_no = bi.orderer and cj.jikup_code = e2.jikup and dbr.report_no = bi.report_no),'')  "orderer"
+                 ,revise_cnt "revise_cnt"
+         
+         from employee e, daily_business_report dbr
+         where e.emp_no = dbr.emp_no  and dbr.report_no = #{report_no}
+     </select> 
+   
+              
+   <!--*******************************************************-->
+   <!-- 내가 보고서 쓴 사람일때 수정하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->   
+   <update id="updateReport1"  parameterType="com.daum.pro.DailyDTO" >   
+         update daily_business_report
+         set
+              busi_type = #{daily_business_field}
+             ,busi_start_date  = to_date(#{begin_daily_business_year}||#{begin_daily_business_month}||#{begin_daily_business_date}||#{begin_daily_business_hour}||#{begin_daily_business_minute}, 'yyyymmddhh24mi')
+             ,busi_end_date = to_date(#{end_daily_business_year}||#{end_daily_business_month}||#{end_daily_business_date}||#{end_daily_business_hour}||#{end_daily_business_minute}, 'yyyymmddhh24mi')
+             ,busi_content = #{daily_business_content}
+             ,fin_state =
+                       <if test=" is_daily_business_finish!=null and is_daily_business_finish!='' ">
+                            1
+                       </if>
+                       <if test=" is_daily_business_finish==null or is_daily_business_finish=='' ">
+                            0
+                       </if>
+             ,revise_cnt = (select revise_cnt+1 from daily_business_report where report_no = #{report_no})
+         where report_no = #{report_no} and emp_no = #{emp_no}
+   </update>
+   
+   
+   <!--*******************************************************-->
+   <!-- 상사가 보고서 수정하는 update문을 내포한 update태그 선언 -->
+   <!--*******************************************************-->   
+   <update id="updateReport2"  parameterType="com.daum.pro.DailyDTO" >   
+         update daily_business_report
+         set
+             fin_state =
+                       <if test=" is_daily_business_finish!=null and is_daily_business_finish!='' ">
+                            1
+                       </if>
+                       <if test=" is_daily_business_finish==null or is_daily_business_finish=='' ">
+                            0
+                       </if>
+             ,revise_cnt = (select revise_cnt+1 from daily_business_report where report_no = #{report_no})
+         where report_no = #{report_no}
+   </update>
+   
+   
+   <!--*******************************************************-->
+   <!-- 일일 업무보고서 입력하는 insert문을 내포한 insert태그 선언 -->
+   <!--*******************************************************-->
+   <insert id="insertInstruction"  parameterType="com.daum.pro.DailyDTO" >
+          merge into daily_business_instruction
+            using dual
+            on (report_no = #{report_no})
+            when matched then
+            update set instructions= nvl(#{daily_business_remarks},'　') , orderer=#{emp_no}
+            when not matched then
+            insert (instruction_no
+                     ,report_no
+                     ,instructions
+                     ,orderer    
+            ) 
+            values ( (select nvl(max(instruction_no),0)+1 from daily_business_instruction)
+                        ,#{report_no}
+                        ,nvl(#{daily_business_remarks},'　')
+                        ,#{emp_no}   
+            )
+   </insert>
+   
+   
+   <!--*******************************************************-->
+   <!-- return_report 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deletereport"  parameterType="com.daum.pro.DailyDTO" >
+         delete from daily_business_report where report_no = #{report_no}
+   </delete>   
+   
+   
+   <!--*******************************************************-->
+   <!-- 지시사항 삭제하는 delete문을 내포한 delete태그 선언 -->
+   <!--*******************************************************-->
+   <delete id="deleteInstruction"  parameterType="com.daum.pro.DailyDTO" >
+         delete from daily_business_instruction where report_no = #{report_no}
+   </delete>   
+ 	
+ 	
+	<!--*******************************************************-->
+    <!-- 일일 업무보고서 내역 검색하는 select 문을 내포한 select태그 선언 -->
+    <!--*******************************************************-->
+     <select id="checkupdate" parameterType="com.daum.pro.DailyDTO" resultType="int">
+           select
+              revise_cnt "revise_cnt"
+         from employee e, daily_business_report dbr
+         where e.emp_no = dbr.emp_no  and dbr.report_no = #{report_no}
+   </select>
+   
+</mapper>
+
+
+
+
