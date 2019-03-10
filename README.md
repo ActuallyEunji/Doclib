@@ -15,7 +15,7 @@
 
   - **OS** : Windows7
   * **Database** : Oracle11
-  + **Service System** : Apache Tomcat, Spring, MyBaits
+  + **Service System** : Apache Tomcat, Spring, MyBatis
   + **언어/Tool** : JavaScript, jQuery ,CSS, HTML5, Java, JSP/Eclipse
   
   <br>
