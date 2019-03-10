@@ -1,4 +1,4 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
+﻿<%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
       
 <%@include file="/WEB-INF/views/common1.jsp"%>
@@ -111,12 +111,12 @@ function checkCompanyLoginForm(){
 
  <BODY>
  <BR><BR><BR><BR><BR><BR>
-<div style="margin-left:1000px">
-<div><h2>
-<font color="white">&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;[로그인]</font>
-</h2></div><BR>
+<center> 
 
-<table class="login" border="1" bgcolor="white" width="400px" height="500px">
+
+<div style="height:100px"></div>
+<br><br>
+<table class="login" border="1" >
    <tr>
    <td>
 
@@ -124,33 +124,33 @@ function checkCompanyLoginForm(){
    <TABLE class="tbcss1" style="margin-left: auto; margin-right: auto;">
    <TR>
       <TD align="center" class="real_table"  border="1">아이디</TD>
-      <TD align="center" class="real_td"  border="1"><input type="text" name="id" style="width:220px; height:30px;" ></TD>
+      <TD align="center" class="real_td"  border="1"><input type="text" name="id" style="width:180px;" ></TD>
    </TR>
    <TR>
       <TD align="center" class="real_table"  border="1">암호</TD>
-      <TD align="center" class="real_td"  border="1"><input type="password" name="pwd" style="width:220px;height:30px;" onkeypress="if(event.keyCode==13){checkCompanyLoginForm( )}"></TD>
+      <TD align="center" class="real_td"  border="1"><input type="password" name="pwd" style="width:180px;"></TD>
    </TR>
    </TABLE>
    <div style="height:15px"></div>
-   <center><span style="cursor:pointer" onclick="checkCompanyLoginForm( )"  class="btn btn1">로그인</span>
+   <center><span style="cursor:pointer" onclick="checkCompanyLoginForm( )" class="btn btn1">로그인</span>
 
    </form>
      <!-- <input type="button" style="cursor:pointer" onclick="location.replace('/pro/approval_id_reg_form.do')">[회원가입]</button> -->
       <span style="cursor:pointer" onclick="location.replace('/pro/approval_id_reg_form.do')" class="btn btn1">회원가입</span>
    <br><br><br>
-   <font size="4px">1차 테스트 아이디: sungsu123</font><br>
-   <font size="4px">테스트 암호: sungsu123</font><br><br>
-   <font size="4px">2차 테스트 아이디: hodong456</font><br>
-   <font size="4px">테스트 암호: hodong456</font><br><br>
-   <font size="4px">3차 테스트 아이디: uuuu789456</font><br>
-   <font size="4px">테스트 암호: uuuu789456</font><br><br>
+   1차 테스트 아이디:  jiseon789<br>
+   테스트 암호: 45678946512<br><br>
+   2차 테스트 아이디: jisung00123<br>
+   테스트 암호: wltjdqkr<br><br>
+   3차 테스트 아이디: kim4401235<br>
+   테스트 암호: zlazlawltjs<br><br>
 <!--     4차 테스트 아이디: gkrtn000<br>
    테스트 암호: gkrtn000<br><br> -->
    
       </td>
       </tr>
    </table>
-</div>
+
  </BODY>
 </HTML>
 </html>
