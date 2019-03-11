@@ -25,4 +25,6 @@
   * **팀원**: 전은지, 박지선, 정하나, 박다정, 정혜원, 서혜선
   
  
-<iframe width="560" height="315" src="https://www.youtube.com/embed/svXHI_Qm6qw" frameborder="0" gesture="media" allowfullscreen=""></iframe>
+
+[![Video Label](http://img.youtube.com/vi/svXHI_Qm6qw/0.jpg)](https://www.youtube.com/embed/svXHI_Qm6qw)<br>
+이미지를 클릭하시면 시연 영상으로 이동합니다. 
